@@ -1,0 +1,26 @@
+name: enxcci
+description: Motor central do ecossistema enxOS para Android.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  crypto: ^3.0.3
+  cron: ^0.5.1
+  http: ^1.2.0
+  intl: ^0.19.0
+  mysql_client: ^0.0.27
+  shared_preferences: ^2.2.2
+  uuid: ^4.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true

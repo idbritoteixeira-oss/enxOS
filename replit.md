@@ -1,45 +1,53 @@
-# [Project name]
+# EnXcci Server
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+App Flutter Android em Dart puro que conecta MySQL remoto, processa dados no
+motor enxOS e grava no Dataniverse local.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `cd enxcci && flutter pub get` — instalar dependências Dart
+- `cd enxcci && flutter analyze` — verificar o código Flutter
+- `cd enxcci && flutter test` — executar os testes unitários
+- `cd enxcci && flutter build apk --release` — gerar o APK Android
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Flutter stable, Dart 3+
+- MySQL remoto via `mysql_client`
+- Dataniverse local via HTTP REST
+- Persistência local via `shared_preferences`
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `enxcci/lib/config/` — modelos e persistência das conexões/jobs
+- `enxcci/lib/database/` — pool MySQL
+- `enxcci/lib/dataniverse/` — cliente HTTP local
+- `enxcci/lib/engine/` — processamento EnX
+- `enxcci/lib/jobs/` — scheduler
+- `enxcci/lib/ui/` — telas e estado do app
+- `.github/workflows/android_build.yml` — CI do APK
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- O projeto Flutter fica em `enxcci/` para manter o app Dart separado do
+  scaffold auxiliar existente.
+- Queries de jobs abrem uma conexão no isolate para não bloquear a UI.
+- O retry do Dataniverse é em memória e preserva comandos enquanto o serviço
+  local estiver offline.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Dashboard dark com status do Dataniverse, conexões MySQL, jobs recorrentes e
+log filtrável/copiável.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Comentários e textos do produto em português brasileiro.
+- Sem Node.js, npm ou JavaScript no app Flutter.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- O CI gera a pasta Android com `flutter create` porque o SDK não está
+  disponível no ambiente de desenvolvimento atual.
+- O Dataniverse precisa estar rodando no mesmo dispositivo em
+  `http://127.0.0.1:8081`.
