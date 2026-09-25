@@ -61,8 +61,7 @@ class EnXJob {
   const EnXJob({
     required this.id,
     required this.label,
-    required this.connectionId,
-    required this.query,
+    required this.scriptId,
     required this.targetTable,
     this.seedShard,
     required this.intervalSeconds,
@@ -74,8 +73,7 @@ class EnXJob {
 
   final String id;
   final String label;
-  final String connectionId;
-  final String query;
+  final String scriptId;
   final String targetTable;
   final String? seedShard;
   final int intervalSeconds;
@@ -84,61 +82,55 @@ class EnXJob {
   final DateTime? lastRun;
   final DateTime? nextRun;
 
-  EnXJob copyWith({
-    String? id,
-    String? label,
-    String? connectionId,
-    String? query,
-    String? targetTable,
-    String? seedShard,
-    int? intervalSeconds,
-    bool? active,
-    String? lastResult,
-    DateTime? lastRun,
-    DateTime? nextRun,
-  }) {
-    return EnXJob(
-      id: id ?? this.id,
-      label: label ?? this.label,
-      connectionId: connectionId ?? this.connectionId,
-      query: query ?? this.query,
-      targetTable: targetTable ?? this.targetTable,
-      seedShard: seedShard ?? this.seedShard,
-      intervalSeconds: intervalSeconds ?? this.intervalSeconds,
-      active: active ?? this.active,
-      lastResult: lastResult ?? this.lastResult,
-      lastRun: lastRun ?? this.lastRun,
-      nextRun: nextRun ?? this.nextRun,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'label': label,
-        'connectionId': connectionId,
-        'query': query,
-        'targetTable': targetTable,
-        'seedShard': seedShard,
-        'intervalSeconds': intervalSeconds,
-        'active': active,
-        'lastResult': lastResult,
-        'lastRun': lastRun?.toIso8601String(),
-        'nextRun': nextRun?.toIso8601String(),
-      };
+EnXJob copyWith({
+  String? id,
+  String? label,
+  String? scriptId,
+  String? targetTable,
+  String? seedShard,
+  int? intervalSeconds,
+  bool? active,
+  String? lastResult,
+  DateTime? lastRun,
+  DateTime? nextRun,
+}) => EnXJob(
+  id: id ?? this.id,
+  label: label ?? this.label,
+  scriptId: scriptId ?? this.scriptId,
+  targetTable: targetTable ?? this.targetTable,
+  seedShard: seedShard ?? this.seedShard,
+  intervalSeconds: intervalSeconds ?? this.intervalSeconds,
+  active: active ?? this.active,
+  lastResult: lastResult ?? this.lastResult,
+  lastRun: lastRun ?? this.lastRun,
+  nextRun: nextRun ?? this.nextRun,
+);
+  
+Map<String, dynamic> toJson() => {
+    'id': id,
+    'label': label,
+    'scriptId': scriptId,
+    'targetTable': targetTable,
+    'seedShard': seedShard,
+    'intervalSeconds': intervalSeconds,
+    'active': active,
+    'lastResult': lastResult,
+    'lastRun': lastRun?.toIso8601String(),
+    'nextRun': nextRun?.toIso8601String(),
+  };
 
   factory EnXJob.fromJson(Map<String, dynamic> json) => EnXJob(
-        id: json['id'] as String? ?? const Uuid().v4(),
-        label: json['label'] as String? ?? 'Novo job',
-        connectionId: json['connectionId'] as String? ?? '',
-        query: json['query'] as String? ?? 'SELECT 1',
-        targetTable: json['targetTable'] as String? ?? 'ottschain',
-        seedShard: json['seedShard'] as String?,
-        intervalSeconds: (json['intervalSeconds'] as num?)?.toInt() ?? 60,
-        active: json['active'] as bool? ?? true,
-        lastResult: json['lastResult'] as String?,
-        lastRun: DateTime.tryParse(json['lastRun'] as String? ?? ''),
-        nextRun: DateTime.tryParse(json['nextRun'] as String? ?? ''),
-      );
+    id: json['id'] as String? ?? const Uuid().v4(),
+    label: json['label'] as String? ?? 'Novo job',
+    scriptId: json['scriptId'] as String? ?? '',
+    targetTable: json['targetTable'] as String? ?? 'ottschain',
+    seedShard: json['seedShard'] as String?,
+    intervalSeconds: (json['intervalSeconds'] as num?)?.toInt() ?? 60,
+    active: json['active'] as bool? ?? true,
+    lastResult: json['lastResult'] as String?,
+    lastRun: DateTime.tryParse(json['lastRun'] as String? ?? ''),
+    nextRun: DateTime.tryParse(json['nextRun'] as String? ?? ''),
+  );
 }
 
 class EnXcciRepository {
