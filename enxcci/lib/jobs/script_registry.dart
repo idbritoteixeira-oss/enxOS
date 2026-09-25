@@ -1,10 +1,8 @@
-import 'package:enxcci/jobs/job_script.dart';
-// importe seus scripts aqui:
-// import 'package:enxcci/jobs/scripts/sync_exemplo.dart';
+import 'package:enxcci/jobs/scripts/generic_script.dart';
 
 class ScriptRegistry {
   static final Map<String, EnXScript> _scripts = {
-    // SyncExemploScript().id: SyncExemploScript(),
+    GenericScript().id: GenericScript(),
   };
 
   static EnXScript? get(String id) => _scripts[id];
