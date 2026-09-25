@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'enx_math.dart'; // Importe o seu arquivo de matemática
+import 'package:enxcci/engine/modules/enx_math.dart'; // Importe o seu arquivo de matemática
 
 class EnXCrypt {
   static String enXCrypt(String content, BigInt seed) {
