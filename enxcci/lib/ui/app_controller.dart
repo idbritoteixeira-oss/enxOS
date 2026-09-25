@@ -201,13 +201,11 @@ class AppController extends ChangeNotifier {
         token: '',
         profile: 'default',
       );
-
   EnXJob newJob() => EnXJob(
-        id: const Uuid().v4(),
-        label: 'Job ${jobs.length + 1}',
-        connectionId: connections.isEmpty ? '' : connections.first.id,
-        query: '',
-        targetTable: '',
-        intervalSeconds: 60,
-      );
+    id: const Uuid().v4(),
+    label: 'Job ${jobs.length + 1}',
+    scriptId: '',
+    targetTable: '',
+    intervalSeconds: 60,
+  );
 }
