@@ -31,7 +31,7 @@ class EnXApiProvider {
     try {
       final response = await _client
           .get(_uri('/health'), headers: _headers())
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 10));
       stopwatch.stop();
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return EnXApiPingResult(

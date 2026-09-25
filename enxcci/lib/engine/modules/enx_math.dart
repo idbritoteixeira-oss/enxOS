@@ -1,30 +1,78 @@
+class _EnXBase {
+  static String toStringPad(BigInt n, int width) {
+    String s = n.toString().replaceAll(RegExp(r'[^0-9]'), '');
+    if (s.isEmpty) s = '0';
+    if (s.length < width) {
+      s = s.padLeft(width, '0');
+    }
+    return s.substring(s.length - width);
+  }
+
+  static String expandir(String base, int alvo) {
+    String res = base;
+    if (res.isEmpty) res = '0';
+
+    while (res.length < alvo) {
+      BigInt n = BigInt.zero;
+      int len = res.length;
+      
+      for (int i = 0; i < len; i++) {
+        BigInt charCode = BigInt.from(res.codeUnitAt(i));
+        BigInt pesoPosicao = BigInt.from(i + 1);
+        BigInt term = charCode * BigInt.from(31) * pesoPosicao;
+        n += term;
+      }
+      
+      BigInt multiplicador = BigInt.from(len + 1);
+      BigInt blocoCalculado = n * multiplicador;
+      res += toStringPad(blocoCalculado, 3);
+    }
+    
+    return res.substring(0, alvo);
+  }
+}
+
 class EnXMath {
-  // TODO: lógica EnX1 em cada um.
-  static BigInt enX1(BigInt seed) => seed;
+  static BigInt enX1(BigInt seed) {
+    return ((seed * BigInt.from(137)) + BigInt.from(11)) % BigInt.from(1000);
+  }
 
-  // TODO: lógica EnX3 em cada um.
-  static BigInt enX3(BigInt seed) => (seed * BigInt.from(3)) + BigInt.from(17);
+  static BigInt enX3(BigInt seed) {
+    return ((enX1(seed) * BigInt.from(827)) + BigInt.from(97)) % BigInt.from(1000000);
+  }
 
-  // TODO: lógica EnX6 em cada um.
-  static BigInt enX6(BigInt seed) => (seed * BigInt.from(6)) + BigInt.from(31);
+  static BigInt enX6(BigInt seed) {
+    return ((enX3(seed) * BigInt.from(1000003)) + BigInt.from(7)) % BigInt.from(1000000000);
+  }
 
-  // TODO: lógica EnX9 em cada um.
-  static BigInt enX9(BigInt seed) => (seed * BigInt.from(9)) + BigInt.from(47);
+  static BigInt enX9(BigInt seed) {
+    return ((enX6(seed) * BigInt.from(1234567)) + BigInt.from(1)) % BigInt.from(1000000000000);
+  }
 
-  // TODO: lógica EnX18 em cada um.
-  static BigInt enX18(BigInt seed) => (seed * BigInt.from(18)) + BigInt.from(97);
+  static BigInt enX18(BigInt seed) {
+    String base9 = _EnXBase.toStringPad(enX9(seed), 12);
+    return BigInt.parse(_EnXBase.expandir(base9, 36));
+  }
 
-  // TODO: lógica EnX32 em cada um.
-  static BigInt enX32(BigInt seed) => (seed * BigInt.from(32)) + BigInt.from(193);
+  static BigInt enX32(BigInt seed) {
+    String base36 = _EnXBase.toStringPad(enX18(seed), 36);
+    return BigInt.parse(_EnXBase.expandir(base36, 64));
+  }
 
-  // TODO: lógica EnX64 em cada um.
-  static BigInt enX64(BigInt seed) => (seed * BigInt.from(64)) + BigInt.from(389);
+  static BigInt enX64(BigInt seed) {
+    String base64 = _EnXBase.toStringPad(enX32(seed), 64);
+    return BigInt.parse(_EnXBase.expandir(base64, 128));
+  }
 
-  // TODO: lógica EnX302 em cada um.
-  static BigInt enX302(BigInt seed) => (seed * BigInt.from(302)) + BigInt.from(1801);
+  static BigInt enX302(BigInt seed) {
+    String base32 = _EnXBase.toStringPad(enX32(seed), 64);
+    return BigInt.parse(_EnXBase.expandir(base32, 640));
+  }
 
-  // TODO: lógica EnX609 em cada um.
-  static BigInt enX609(BigInt seed) => (seed * BigInt.from(609)) + BigInt.from(3607);
+  static BigInt enX609(BigInt seed) {
+    String base64 = _EnXBase.toStringPad(enX64(seed), 128);
+    return BigInt.parse(_EnXBase.expandir(base64, 1280));
+  }
 }
 
 BigInt enX1(BigInt seed) => EnXMath.enX1(seed);

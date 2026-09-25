@@ -1,9 +1,6 @@
 import 'dart:convert';
-
-import 'package:crypto/crypto.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-
 import 'package:enxcci/config/enxcci_config.dart';
 import 'package:enxcci/dataniverse/dataniverse_client.dart';
 import 'package:enxcci/engine/modules/enx_crypt.dart';
@@ -12,9 +9,10 @@ import 'package:enxcci/engine/modules/enx_math.dart';
 class OttsVision {
   static String generateHash64() {
     final timestamp = DateTime.now().microsecondsSinceEpoch;
-    final value = EnXMath.enX32(BigInt.from(timestamp)).abs().toString();
-    final repeated = value.padLeft(64, '0');
-    return repeated.substring(repeated.length - 64);
+    final bigResult = EnXMath.enX32(BigInt.from(timestamp));
+    // Converte e garante os 64 dígitos no padrão EnX OS
+    final normalized = bigResult.toString().replaceAll(RegExp(r'[^0-9]'), '');
+    return normalized.padLeft(64, '0').substring(normalized.length > 64 ? normalized.length - 64 : 0);
   }
 
   static List<int> sliceSeeds(String hash64) {
@@ -52,18 +50,26 @@ class OttsChain {
   final DateTime createdAt;
 
   OttsChain seal() {
-    final input = '$seed|${EnXCrypt.enXCrypt(content.join(), BigInt.from(seed))}|${content.join()}';
-    final hash = sha256.convert(utf8.encode(input)).toString();
-    return OttsChain(
-      id: id,
-      idModulo: idModulo,
-      seed: seed,
-      idPub: idPub,
-      content: content,
-      sealed: true,
-      sealHash: hash,
-      createdAt: createdAt,
-    );
+  final encryptedContent = EnXCrypt.enXCrypt(content.join(), BigInt.from(seed));
+  final input = '$seed|$encryptedContent|${content.join()}';
+  
+  // Soma dos codeUnits do input como BigInt base
+  final inputBig = input.codeUnits
+      .fold<BigInt>(BigInt.zero, (acc, c) => acc + BigInt.from(c));
+  
+  // Assinatura via EnX18 — 36 dígitos, puro enxOS
+  final sealHash = EnXMath.enX9(inputBig).toString().padLeft(12, '0');
+
+  return OttsChain(
+    id: id,
+    idModulo: idModulo,
+    seed: seed,
+    idPub: idPub,
+    content: content,
+    sealed: true,
+    sealHash: sealHash,
+    createdAt: createdAt,
+  );
   }
 
   Map<String, dynamic> toDataniverse() => {
@@ -101,7 +107,11 @@ class EnXcciEngine {
 
     final hash64 = OttsVision.generateHash64();
     final seeds = OttsVision.sliceSeeds(hash64);
-    final seed = (EnXMath.enX3(BigInt.from(seeds.first)).abs().toInt() % 90000000) + 10000000;
+    
+    // Processamento da semente usando o novo EnXMath.enX3
+    final BigInt enx3Result = EnXMath.enX3(BigInt.from(seeds.first));
+    final seed = (enx3Result.abs().toInt() % 90000000) + 10000000;
+
     final chunks = <String>[];
     for (final row in rows) {
       final content = jsonEncode(row);
@@ -119,17 +129,20 @@ class EnXcciEngine {
       idPub: 'enxcci-server',
       content: chunks,
     ).seal();
+
     final response = await dataniverse.command({
       'action': 'INSERT',
       'table': job.targetTable,
       'seedShard': job.seedShard,
       'data': chain.toDataniverse(),
     });
+
     final status = response['status']?.toString() ?? 'UNKNOWN';
     onLog?.call(
       status == 'SUCCESS' || status == 'QUEUED' ? 'SUCCESS' : 'ERROR',
       '${job.label}: ${rows.length} registros processados → $status',
     );
+
     return rows.length;
   }
 

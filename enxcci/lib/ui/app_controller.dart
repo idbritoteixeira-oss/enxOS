@@ -108,7 +108,7 @@ class AppController extends ChangeNotifier {
     jobs = jobs.map((job) => job.copyWith(active: active)).toList();
     await repository.saveJobs(jobs);
     await scheduler.start(jobs);
-    addLog('INFO', active ? 'Todos os jobs iniciados' : 'Todos os jobs parados');
+    addLog('INFO', active ? 'jobs iniciados' : 'jobs parados');
     notifyListeners();
   }
 
@@ -206,8 +206,8 @@ class AppController extends ChangeNotifier {
         id: const Uuid().v4(),
         label: 'Job ${jobs.length + 1}',
         connectionId: connections.isEmpty ? '' : connections.first.id,
-        query: 'SELECT 1',
-        targetTable: 'ottschain',
+        query: '',
+        targetTable: '',
         intervalSeconds: 60,
       );
 }
