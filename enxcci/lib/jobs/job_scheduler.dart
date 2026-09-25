@@ -1,11 +1,10 @@
-//job_scheduler.dart//
 import 'dart:async';
 
 import 'package:cron/cron.dart';
 
 import 'package:enxcci/config/enxcci_config.dart';
-import 'package:enxcci/database/enx_api_provider.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
+import 'package:enxcci/jobs/script_registry.dart';
 
 typedef SchedulerLog = void Function(String level, String message);
 typedef JobUpdate = void Function(EnXJob job);
@@ -38,32 +37,27 @@ class JobScheduler {
     await stop();
     _cron = Cron();
     _running = true;
-    for (final job in jobs.where((item) => item.active)) {
+    for (final job in jobs.where((j) => j.active)) {
       _schedule(job);
     }
     onLog?.call('INFO', '${_scheduled.length} jobs ativos iniciados');
   }
 
   void _schedule(EnXJob job) {
-    _cron.schedule(
-      Schedule.parse('* * * * * *'),
-      () async {
-        if (_inFlight.contains(job.id)) return;
-        final now = DateTime.now();
-        final lastRun = _lastRunAt[job.id];
-        if (lastRun != null &&
-            now.difference(lastRun).inSeconds < job.intervalSeconds) {
-          return;
-        }
-        _lastRunAt[job.id] = now;
-        _inFlight.add(job.id);
-        try {
-          await _run(job);
-        } finally {
-          _inFlight.remove(job.id);
-        }
-      },
-    );
+    _cron.schedule(Schedule.parse('* * * * * *'), () async {
+      if (_inFlight.contains(job.id)) return;
+      final now = DateTime.now();
+      final lastRun = _lastRunAt[job.id];
+      if (lastRun != null &&
+          now.difference(lastRun).inSeconds < job.intervalSeconds) return;
+      _lastRunAt[job.id] = now;
+      _inFlight.add(job.id);
+      try {
+        await _run(job);
+      } finally {
+        _inFlight.remove(job.id);
+      }
+    });
     _scheduled.add(job.id);
     onJobUpdate?.call(job.copyWith(
       nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
@@ -71,25 +65,27 @@ class JobScheduler {
   }
 
   Future<void> _run(EnXJob job) async {
-    final config = connections.cast<EnXcciConfig?>().firstWhere(
-          (item) => item?.id == job.connectionId,
-          orElse: () => null,
-        );
-    if (config == null) {
-      onLog?.call('ERROR', '${job.label}: conexão não encontrada');
+    final script = ScriptRegistry.get(job.scriptId);
+    if (script == null) {
+      onLog?.call('ERROR', '${job.label}: script "${job.scriptId}" não registrado');
       onJobUpdate?.call(job.copyWith(
-        lastResult: 'Erro: conexão não encontrada',
+        lastResult: 'Erro: script não encontrado',
         lastRun: DateTime.now(),
         nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
       ));
       return;
     }
+    final pool = {for (final c in connections) c.id: c};
     try {
-      onLog?.call('INFO', '${job.label}: executando consulta');
-      final rows = await EnXApiProvider.queryConfigInIsolate(config, job.query);
-      final count = await engine.processRows(job: job, rows: rows);
+      onLog?.call('INFO', '${job.label}: executando script "${script.label}"');
+      await script.run(
+        connections: pool,
+        dataniverse: engine.dataniverse,
+        engine: engine,
+        log: onLog ?? (_, __) {},
+      );
       onJobUpdate?.call(job.copyWith(
-        lastResult: '$count registros processados',
+        lastResult: 'Script executado com sucesso',
         lastRun: DateTime.now(),
         nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
       ));
@@ -115,6 +111,5 @@ class JobScheduler {
 
   Future<void> dispose() async {
     await stop();
-    await _cron.close();
   }
 }
