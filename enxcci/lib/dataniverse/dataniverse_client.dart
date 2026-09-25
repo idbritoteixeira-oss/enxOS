@@ -123,28 +123,31 @@ class DataniverseClient {
     return decoded;
   }
 
-  Future<Map<String, dynamic>> _sendTcp(
-    Map<String, dynamic> body,
-  ) async {
-    final socket = await Socket.connect(
-      tcpHost,
-      tcpPort,
-      timeout: const Duration(seconds: 3),
-    );
-    try {
-      // O protocolo TCP do Dataniverse usa um JSON completo por linha.
-      socket.write('${jsonEncode(body)}\n');
-      await socket.flush();
-      final line = await socket
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .first
-          .timeout(const Duration(seconds: 10));
-      return _decode(line);
-    } finally {
-      socket.destroy();
-    }
+Future<Map<String, dynamic>> _sendTcp(
+  Map<String, dynamic> body,
+) async {
+  final socket = await Socket.connect(
+    tcpHost,
+    tcpPort,
+    timeout: const Duration(seconds: 3),
+  );
+  try {
+    // O protocolo TCP do Dataniverse usa um JSON completo por linha.
+    socket.write('${jsonEncode(body)}\n');
+    await socket.flush();
+
+    final line = await socket
+        .cast<List<int>>()
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .first
+        .timeout(const Duration(seconds: 10));
+
+    return _decode(line);
+  } finally {
+    socket.destroy();
   }
+}
 
   void _enqueue(Map<String, dynamic> body) {
     _retryQueue.add(body);
