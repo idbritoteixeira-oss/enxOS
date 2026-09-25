@@ -131,19 +131,44 @@ Future<Map<String, dynamic>> _sendTcp(
     tcpPort,
     timeout: const Duration(seconds: 3),
   );
+
   try {
-    // O protocolo TCP do Dataniverse usa um JSON completo por linha.
+    // Usamos um StreamIterator para ler as respostas do servidor sequencialmente
+    final iterator = StreamIterator(
+      socket
+          .cast<List<int>>()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+    );
+
+    // 1. Enviar autenticação obrigatória via TCP
+    final authPayload = {
+      'action': 'AUTH',
+      'password': password,
+    };
+    socket.write('${jsonEncode(authPayload)}\n');
+    await socket.flush();
+
+    // Aguarda e valida a resposta da autenticação
+    if (await iterator.moveNext().timeout(const Duration(seconds: 5))) {
+      final authResponse = _decode(iterator.current);
+      if (authResponse['error'] != null || authResponse['status'] == 'ERROR') {
+        throw StateError(authResponse['message']?.toString() ?? 'Falha na autenticação TCP do Dataniverse');
+      }
+    } else {
+      throw StateError('Dataniverse não respondeu ao comando AUTH');
+    }
+
+    // 2. Enviar o comando real após estar autenticado
     socket.write('${jsonEncode(body)}\n');
     await socket.flush();
 
-    final line = await socket
-        .cast<List<int>>()
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .first
-        .timeout(const Duration(seconds: 10));
+    // Aguarda a resposta do comando principal
+    if (await iterator.moveNext().timeout(const Duration(seconds: 10))) {
+      return _decode(iterator.current);
+    }
 
-    return _decode(line);
+    throw StateError('Sem resposta do servidor para o comando enviado');
   } finally {
     socket.destroy();
   }
