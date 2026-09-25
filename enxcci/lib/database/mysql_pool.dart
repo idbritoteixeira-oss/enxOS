@@ -39,6 +39,7 @@ class MysqlPool {
       userName: config.user,
       password: config.password,
       databaseName: config.database,
+      secure: false, // <-- Desativa a exigência de SSL
     );
     await connection.connect();
     _connections[config.id] = connection;
@@ -85,6 +86,7 @@ class MysqlPool {
         userName: config.user,
         password: config.password,
         databaseName: config.database,
+        secure: false, // <-- Desativa a exigência de SSL no Isolate também
       );
       try {
         await connection.connect();
