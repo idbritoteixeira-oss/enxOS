@@ -123,9 +123,9 @@ Future<void> _showJobEditor(
               _field(label, 'Nome do job'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: ScriptRegistry.getAll().any((s) => s.id == scriptId)
-                    ? scriptId
-                    : null,
+                initialValue: ScriptRegistry.getAll().any((s) => s.id == scriptId)
+    ? scriptId
+    : null,
                 decoration: const InputDecoration(labelText: 'Script'),
                 items: ScriptRegistry.getAll()
                     .map((s) =>

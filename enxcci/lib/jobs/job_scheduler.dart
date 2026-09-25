@@ -49,7 +49,9 @@ class JobScheduler {
       final now = DateTime.now();
       final lastRun = _lastRunAt[job.id];
       if (lastRun != null &&
-          now.difference(lastRun).inSeconds < job.intervalSeconds) return;
+    now.difference(lastRun).inSeconds < job.intervalSeconds) {
+  return;
+      }
       _lastRunAt[job.id] = now;
       _inFlight.add(job.id);
       try {
