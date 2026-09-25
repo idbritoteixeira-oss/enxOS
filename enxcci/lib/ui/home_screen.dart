@@ -115,7 +115,7 @@ class _StatusCard extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Dataniverse', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 3),
-            Text(online ? 'Online · 127.0.0.1:8081' : 'Offline · comandos em fila', style: TextStyle(color: color)),
+            Text(online ? 'Online · Dataniverse HTTP 8080' : 'Offline · comandos em fila', style: TextStyle(color: color)),
           ])),
           if (pending > 0) Chip(label: Text('$pending pendentes'), avatar: const Icon(Icons.sync, size: 16)),
         ],

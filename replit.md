@@ -1,7 +1,7 @@
 # EnXcci Server
 
-App Flutter Android em Dart puro que conecta MySQL remoto, processa dados no
-motor enxOS e grava no Dataniverse local.
+App Flutter Android em Dart puro que consome o API Gateway enxOS, processa
+dados no motor enxOS e grava no Dataniverse local.
 
 ## Run & Operate
 
@@ -13,15 +13,16 @@ motor enxOS e grava no Dataniverse local.
 ## Stack
 
 - Flutter stable, Dart 3+
-- MySQL remoto via `mysql_client`
-- Dataniverse local via HTTP REST
+- API Gateway Python via HTTP autenticado
+- Dataniverse local via REST 8080 ou TCP 8081
 - Persistência local via `shared_preferences`
 
 ## Where things live
 
 - `enxcci/lib/config/` — modelos e persistência das conexões/jobs
-- `enxcci/lib/database/` — pool MySQL
-- `enxcci/lib/dataniverse/` — cliente HTTP local
+- `enxcci/lib/database/` — provedor HTTP do gateway
+- `enxcci/lib/dataniverse/` — cliente REST/TCP local
+- `bridge/` — API Gateway Python para o MySQL local
 - `enxcci/lib/engine/` — processamento EnX
 - `enxcci/lib/jobs/` — scheduler
 - `enxcci/lib/ui/` — telas e estado do app
@@ -31,7 +32,7 @@ motor enxOS e grava no Dataniverse local.
 
 - O projeto Flutter fica em `enxcci/` para manter o app Dart separado do
   scaffold auxiliar existente.
-- Queries de jobs abrem uma conexão no isolate para não bloquear a UI.
+- Queries de jobs são enviadas ao gateway HTTP em isolate para não bloquear a UI.
 - O retry do Dataniverse é em memória e preserva comandos enquanto o serviço
   local estiver offline.
 
@@ -49,5 +50,6 @@ log filtrável/copiável.
 
 - O CI gera a pasta Android com `flutter create` porque o SDK não está
   disponível no ambiente de desenvolvimento atual.
-- O Dataniverse precisa estar rodando no mesmo dispositivo em
-  `http://127.0.0.1:8081`.
+- O Dataniverse REST precisa estar rodando no mesmo dispositivo em
+  `http://127.0.0.1:8080`, ou o modo TCP deve usar `127.0.0.1:8081`.
+- O gateway exige `ENX_API_TOKEN` e as variáveis `MYSQL_*` no servidor.

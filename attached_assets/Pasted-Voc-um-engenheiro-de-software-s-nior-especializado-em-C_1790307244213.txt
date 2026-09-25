@@ -1,0 +1,32 @@
+Você é um engenheiro de software sênior especializado em C++, Dart e arquitetura de sistemas distribuídos do ecossistema enxOS.
+
+Preciso reformular a camada de dados do projeto EnXcci hospedado no Replit, removendo a conexão direta via driver MySQL (porta 3306), pois hospedagens compartilhadas e ambientes em nuvem com firewall bloqueiam conexões externas brutas.
+
+### REQUISITOS OBRIGATÓRIOS (RESTRIÇÕES DE AMBIENTE):
+1. PROIBIDO o uso de Node.js, npm, JavaScript ou TypeScript.
+2. O backend de suporte no Replit deve ser implementado em C++ (utilizando Crow/httplib) ou Python leve, servindo como uma ponte (Bridge/API Gateway) HTTP REST para o banco MySQL local do servidor.
+3. Não altere as rotas do Dataniverse Server (TCP puro na porta 8081 usando JSON delimitado por \n e HTTP REST na porta 8080).
+
+---
+
+### TAREFAS DE IMPLEMENTAÇÃO:
+
+#### 1. Criar o API Gateway no Replit (Substituto do driver MySQL direto)
+- Crie um serviço backend leve que receba requisições HTTP POST contendo queries SQL ou comandos estruturados em formato JSON.
+- Autentique todas as chamadas usando um cabeçalho customizado (ex: `X-EnX-Token`).
+- Esse serviço executa as consultas no MySQL localmente (onde a conexão 127.0.0.1:3306 é permitida) e retorna o resultado em JSON limpo:
+  `{ "status": "success", "data": [ ... ] }`
+
+#### 2. Reformular o Módulo de Banco no EnXcci (`lib/database/`)
+- Desative/Substitua a classe `MysqlPool` que usava `mysql_client` direto na porta 3306.
+- Crie o `EnXApiProvider` para realizar requisições HTTP REST ao Gateway do Replit.
+- Garanta suporte a execução em `Isolate` caso haja payloads extensos para transformar.
+
+#### 3. Ajustar o Cliente do Dataniverse (`lib/dataniverse/`)
+- Certifique-se de que o EnXcci se conecta ao Dataniverse Server enviando pacotes JSON puros terminados em quebra de linha `\n` quando utilizar a porta TCP (`8081`).
+- Caso opte pelo protocolo HTTP REST do Dataniverse, direcione as chamadas obrigatoriamente para a porta `8080` na rota `/command`.
+
+#### 4. Atualizar o `README.md`
+- Atualize a documentação da arquitetura refletindo que o EnXcci agora consome a API do enxOS via HTTP e envia os blocos processados diretamente ao Dataniverse por soquete TCP (`8081`) ou REST (`8080`).
+
+Forneça os códigos atualizados e prontos para substituição direta na estrutura do projeto.

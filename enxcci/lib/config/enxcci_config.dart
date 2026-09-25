@@ -7,41 +7,33 @@ class EnXcciConfig {
   const EnXcciConfig({
     required this.id,
     required this.label,
-    required this.host,
-    required this.port,
-    required this.user,
-    required this.password,
-    required this.database,
+    required this.gatewayUrl,
+    required this.token,
+    required this.profile,
     this.active = true,
   });
 
   final String id;
   final String label;
-  final String host;
-  final int port;
-  final String user;
-  final String password;
-  final String database;
+  final String gatewayUrl;
+  final String token;
+  final String profile;
   final bool active;
 
   EnXcciConfig copyWith({
     String? id,
     String? label,
-    String? host,
-    int? port,
-    String? user,
-    String? password,
-    String? database,
+    String? gatewayUrl,
+    String? token,
+    String? profile,
     bool? active,
   }) {
     return EnXcciConfig(
       id: id ?? this.id,
       label: label ?? this.label,
-      host: host ?? this.host,
-      port: port ?? this.port,
-      user: user ?? this.user,
-      password: password ?? this.password,
-      database: database ?? this.database,
+      gatewayUrl: gatewayUrl ?? this.gatewayUrl,
+      token: token ?? this.token,
+      profile: profile ?? this.profile,
       active: active ?? this.active,
     );
   }
@@ -49,22 +41,18 @@ class EnXcciConfig {
   Map<String, dynamic> toJson() => {
         'id': id,
         'label': label,
-        'host': host,
-        'port': port,
-        'user': user,
-        'password': password,
-        'database': database,
+        'gatewayUrl': gatewayUrl,
+        'token': token,
+        'profile': profile,
         'active': active,
       };
 
   factory EnXcciConfig.fromJson(Map<String, dynamic> json) => EnXcciConfig(
         id: json['id'] as String? ?? const Uuid().v4(),
-        label: json['label'] as String? ?? 'MySQL',
-        host: json['host'] as String? ?? '127.0.0.1',
-        port: (json['port'] as num?)?.toInt() ?? 3306,
-        user: json['user'] as String? ?? '',
-        password: json['password'] as String? ?? '',
-        database: json['database'] as String? ?? '',
+        label: json['label'] as String? ?? 'Gateway enxOS',
+        gatewayUrl: json['gatewayUrl'] as String? ?? 'http://127.0.0.1:8099',
+        token: json['token'] as String? ?? '',
+        profile: json['profile'] as String? ?? json['database'] as String? ?? 'default',
         active: json['active'] as bool? ?? true,
       );
 }

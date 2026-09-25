@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:enxcci/config/enxcci_config.dart';
-import 'package:enxcci/database/mysql_pool.dart';
+import 'package:enxcci/database/enx_api_provider.dart';
 import 'package:enxcci/dataniverse/dataniverse_client.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
 import 'package:enxcci/jobs/job_scheduler.dart';
@@ -22,14 +22,12 @@ class EnXLogEntry {
 class AppController extends ChangeNotifier {
   AppController._({
     required this.repository,
-    required this.pool,
     required this.dataniverse,
     required this.engine,
     required this.scheduler,
   });
 
   final EnXcciRepository repository;
-  final MysqlPool pool;
   final DataniverseClient dataniverse;
   final EnXcciEngine engine;
   final JobScheduler scheduler;
@@ -46,9 +44,12 @@ class AppController extends ChangeNotifier {
     final preferences = await SharedPreferences.getInstance();
     late AppController controller;
     final repository = EnXcciRepository(preferences);
-    final pool = MysqlPool();
     final dataniverse = DataniverseClient(
-      password: 'enxcci-local',
+      baseUrl: 'http://127.0.0.1:8080',
+      password: const String.fromEnvironment(
+        'DATANIVERSE_PASSWORD',
+        defaultValue: 'enxcci-local',
+      ),
       onLog: (message, {error = false}) {
         controller.addLog(error ? 'ERROR' : 'INFO', message);
       },
@@ -58,7 +59,6 @@ class AppController extends ChangeNotifier {
       onLog: (level, message) => controller.addLog(level, message),
     );
     final scheduler = JobScheduler(
-      pool: pool,
       engine: engine,
       connections: const [],
       onLog: (level, message) => controller.addLog(level, message),
@@ -66,7 +66,6 @@ class AppController extends ChangeNotifier {
     );
     controller = AppController._(
       repository: repository,
-      pool: pool,
       dataniverse: dataniverse,
       engine: engine,
       scheduler: scheduler,
@@ -82,7 +81,6 @@ class AppController extends ChangeNotifier {
     addLog('INFO', 'EnXcci iniciando');
     dataniverse.startRetryLoop();
     await refreshDataniverseStatus();
-    await pool.connectActive(connections);
     await scheduler.start(jobs);
     _healthTimer = Timer.periodic(const Duration(seconds: 30), (_) => healthWatchdog());
     _dataniverseTimer = Timer.periodic(const Duration(seconds: 5), (_) => refreshDataniverseStatus());
@@ -98,7 +96,7 @@ class AppController extends ChangeNotifier {
   Future<void> healthWatchdog() async {
     await refreshDataniverseStatus();
     for (final config in connections.where((item) => item.active)) {
-      final result = await pool.ping(config);
+      final result = await _pingGateway(config);
       addLog(
         result.online ? 'SUCCESS' : 'ERROR',
         '${config.label}: ${result.online ? '${result.latencyMs} ms' : 'offline'}',
@@ -123,24 +121,32 @@ class AppController extends ChangeNotifier {
     }
     await repository.saveConnections(connections);
     scheduler.updateConnections(connections);
-    final result = await pool.ping(config);
+    final result = await _pingGateway(config);
     addLog(result.online ? 'SUCCESS' : 'ERROR', '${config.label}: ${result.online ? 'conectado' : 'falha de conexão'}');
     notifyListeners();
   }
 
   Future<void> removeConnection(EnXcciConfig config) async {
-    await pool.close(config.id);
     connections = connections.where((item) => item.id != config.id).toList();
     await repository.saveConnections(connections);
     scheduler.updateConnections(connections);
     notifyListeners();
   }
 
-  Future<MysqlPingResult> pingConnection(EnXcciConfig config) async {
-    final result = await pool.ping(config);
+  Future<EnXApiPingResult> pingConnection(EnXcciConfig config) async {
+    final result = await _pingGateway(config);
     addLog(result.online ? 'SUCCESS' : 'ERROR', '${config.label}: ${result.online ? '${result.latencyMs} ms' : result.error ?? 'offline'}');
     notifyListeners();
     return result;
+  }
+
+  Future<EnXApiPingResult> _pingGateway(EnXcciConfig config) async {
+    final provider = EnXApiProvider(config: config);
+    try {
+      return await provider.ping();
+    } finally {
+      provider.dispose();
+    }
   }
 
   Future<void> upsertJob(EnXJob job) async {
@@ -184,19 +190,16 @@ class AppController extends ChangeNotifier {
     _healthTimer?.cancel();
     _dataniverseTimer?.cancel();
     scheduler.dispose();
-    pool.closeAll();
     dataniverse.dispose();
     super.dispose();
   }
 
   EnXcciConfig newConnection() => EnXcciConfig(
         id: const Uuid().v4(),
-        label: 'MySQL ${connections.length + 1}',
-        host: '127.0.0.1',
-        port: 3306,
-        user: '',
-        password: '',
-        database: '',
+        label: 'Gateway ${connections.length + 1}',
+        gatewayUrl: 'http://127.0.0.1:8099',
+        token: '',
+        profile: 'default',
       );
 
   EnXJob newJob() => EnXJob(

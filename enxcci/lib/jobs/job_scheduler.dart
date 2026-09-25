@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:cron/cron.dart';
 
 import 'package:enxcci/config/enxcci_config.dart';
-import 'package:enxcci/database/mysql_pool.dart';
+import 'package:enxcci/database/enx_api_provider.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
 
 typedef SchedulerLog = void Function(String level, String message);
@@ -11,14 +11,12 @@ typedef JobUpdate = void Function(EnXJob job);
 
 class JobScheduler {
   JobScheduler({
-    required this.pool,
     required this.engine,
     required this.connections,
     this.onLog,
     this.onJobUpdate,
   });
 
-  final MysqlPool pool;
   final EnXcciEngine engine;
   List<EnXcciConfig> connections;
   final SchedulerLog? onLog;
@@ -87,7 +85,7 @@ class JobScheduler {
     }
     try {
       onLog?.call('INFO', '${job.label}: executando consulta');
-      final rows = await pool.queryInIsolate(config, job.query);
+      final rows = await EnXApiProvider.queryConfigInIsolate(config, job.query);
       final count = await engine.processRows(job: job, rows: rows);
       onJobUpdate?.call(job.copyWith(
         lastResult: '$count registros processados',

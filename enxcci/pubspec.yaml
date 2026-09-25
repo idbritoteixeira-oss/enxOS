@@ -13,7 +13,6 @@ dependencies:
   cron: ^0.5.1
   http: ^1.2.0
   intl: ^0.19.0
-  mysql_client: ^0.0.27
   shared_preferences: ^2.2.2
   uuid: ^4.3.3
 

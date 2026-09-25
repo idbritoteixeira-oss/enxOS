@@ -13,7 +13,7 @@ class ConnectionsScreen extends StatelessWidget {
         animation: controller,
         builder: (context, _) => Scaffold(
           backgroundColor: Colors.transparent,
-          appBar: AppBar(title: const Text('Conexões MySQL'), actions: [
+          appBar: AppBar(title: const Text('Gateways enxOS'), actions: [
             IconButton(onPressed: controller.healthWatchdog, icon: const Icon(Icons.refresh)),
           ]),
           body: controller.connections.isEmpty
@@ -68,7 +68,7 @@ class _ConnectionTileState extends State<_ConnectionTile> {
             child: Icon(Icons.storage, color: online == true ? const Color(0xFF41D5C3) : online == false ? const Color(0xFFFF6B7A) : Colors.white54),
           ),
           title: Text(widget.connection.label),
-          subtitle: Text('${widget.connection.host}:${widget.connection.port}/${widget.connection.database}\n${online == true ? 'Online · ${latency ?? 0} ms' : online == false ? 'Offline' : 'Testando...'}'),
+          subtitle: Text('${widget.connection.gatewayUrl} · perfil ${widget.connection.profile}\n${online == true ? 'Online · ${latency ?? 0} ms' : online == false ? 'Offline' : 'Testando...'}'),
           isThreeLine: true,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -103,11 +103,9 @@ class _ConnectionTileState extends State<_ConnectionTile> {
 
 Future<void> _showConnectionEditor(BuildContext context, AppController controller, EnXcciConfig initial) async {
   final label = TextEditingController(text: initial.label);
-  final host = TextEditingController(text: initial.host);
-  final port = TextEditingController(text: '${initial.port}');
-  final user = TextEditingController(text: initial.user);
-  final password = TextEditingController(text: initial.password);
-  final database = TextEditingController(text: initial.database);
+  final gatewayUrl = TextEditingController(text: initial.gatewayUrl);
+  final token = TextEditingController(text: initial.token);
+  final profile = TextEditingController(text: initial.profile);
   final formKey = GlobalKey<FormState>();
   await showDialog<void>(
     context: context,
@@ -115,11 +113,9 @@ Future<void> _showConnectionEditor(BuildContext context, AppController controlle
       title: Text(initial.label.isEmpty ? 'Nova conexão' : 'Editar conexão'),
       content: SingleChildScrollView(child: Form(key: formKey, child: Column(mainAxisSize: MainAxisSize.min, children: [
         _field(label, 'Nome'),
-        _field(host, 'Host'),
-        _field(port, 'Porta', keyboard: TextInputType.number),
-        _field(user, 'Usuário'),
-        _field(password, 'Senha', obscure: true),
-        _field(database, 'Banco de dados'),
+        _field(gatewayUrl, 'URL do API Gateway'),
+        _field(token, 'Token X-EnX-Token', obscure: true),
+        _field(profile, 'Perfil MySQL no gateway'),
       ]))),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
@@ -128,11 +124,9 @@ Future<void> _showConnectionEditor(BuildContext context, AppController controlle
             if (!(formKey.currentState?.validate() ?? false)) return;
             await controller.upsertConnection(initial.copyWith(
               label: label.text.trim(),
-              host: host.text.trim(),
-              port: int.tryParse(port.text) ?? 3306,
-              user: user.text.trim(),
-              password: password.text,
-              database: database.text.trim(),
+              gatewayUrl: gatewayUrl.text.trim(),
+              token: token.text,
+              profile: profile.text.trim(),
             ));
             if (context.mounted) Navigator.pop(context);
           },
