@@ -128,9 +128,8 @@ Future<void> _showJobEditor(
     : null,
                 decoration: const InputDecoration(labelText: 'Script'),
                 items: ScriptRegistry.getAll()
-                    .map((s) =>
-                        DropdownMenuItem(value: s.id, child: Text(s.label)))
-                    .toList(),
+    .map((s) => DropdownMenuItem(value: s.id ?? '', child: Text(s.label ?? '')))
+    .toList(),
                 onChanged: (value) =>
                     setState(() => scriptId = value ?? ''),
                 validator: (value) =>

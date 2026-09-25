@@ -1,7 +1,6 @@
 import 'package:enxcci/config/enxcci_config.dart';
 import 'package:enxcci/dataniverse/dataniverse_client.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
-import 'package:enxcci/engine/enxcci_engine.dart' show OttsVision, OttsChain;
 import 'package:enxcci/jobs/job_script.dart';
 
 class OttsVisionHashScript extends EnXScript {
