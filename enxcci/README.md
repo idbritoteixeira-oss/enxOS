@@ -4,7 +4,7 @@ Motor central do ecossistema enxOS para Android. O app consome o enxOS API
 Gateway por HTTP, transforma os resultados nos módulos EnX e grava blocos no
 Dataniverse local via REST (`127.0.0.1:8080`) ou TCP (`127.0.0.1:8081`).
 
-## Desenvolvimento
+## Dev
 
 ```bash
 flutter create --platforms=android --project-name enxcci .
