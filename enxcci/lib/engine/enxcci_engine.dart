@@ -4,10 +4,10 @@ import 'package:crypto/crypto.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
-import '../config/enxcci_config.dart';
-import '../dataniverse/dataniverse_client.dart';
-import 'modules/enx_crypt.dart';
-import 'modules/enx_math.dart';
+import 'package:enxcci/config/enxcci_config.dart';
+import 'package:enxcci/dataniverse/dataniverse_client.dart';
+import 'package:enxcci/engine/modules/enx_crypt.dart';
+import 'package:enxcci/engine/modules/enx_math.dart';
 
 class OttsVision {
   static String generateHash64() {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import 'app_controller.dart';
+import 'package:enxcci/ui/app_controller.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key, required this.controller});

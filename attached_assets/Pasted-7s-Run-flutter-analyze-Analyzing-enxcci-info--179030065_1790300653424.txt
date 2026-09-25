@@ -1,0 +1,38 @@
+7s
+Run flutter analyze
+  
+Analyzing enxcci...                                             
+
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/database/mysql_pool.dart:5:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/engine/enxcci_engine.dart:7:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/engine/enxcci_engine.dart:8:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/engine/enxcci_engine.dart:9:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/engine/enxcci_engine.dart:10:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/jobs/job_scheduler.dart:5:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/jobs/job_scheduler.dart:6:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/jobs/job_scheduler.dart:7:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/main.dart:3:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/main.dart:4:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/app_controller.dart:7:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/app_controller.dart:8:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/app_controller.dart:9:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/app_controller.dart:10:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/app_controller.dart:11:8 • always_use_package_imports
+  error • The class 'AppController' doesn't have an unnamed constructor. Try using one of the named constructors defined in 'AppController' • lib/ui/app_controller.dart:67:18 • new_with_undefined_constructor_default
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/connections_screen.dart:3:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/connections_screen.dart:4:8 • always_use_package_imports
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/ui/connections_screen.dart:67:134 • deprecated_member_use
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/home_screen.dart:3:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/home_screen.dart:4:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/home_screen.dart:5:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/home_screen.dart:6:8 • always_use_package_imports
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/ui/home_screen.dart:107:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/ui/home_screen.dart:109:41 • deprecated_member_use
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/jobs_screen.dart:4:8 • always_use_package_imports
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/jobs_screen.dart:5:8 • always_use_package_imports
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/ui/jobs_screen.dart:92:11 • deprecated_member_use
+   info • Use 'package:' imports for files in the 'lib' directory. Try converting the URI to a 'package:' URI • lib/ui/log_screen.dart:5:8 • always_use_package_imports
+  error • The name 'MyApp' isn't a class. Try correcting the name to match an existing class • test/widget_test.dart:16:35 • creation_with_non_type
+
+30 issues found. (ran in 7.4s)
+Error: Process completed with exit code 1.

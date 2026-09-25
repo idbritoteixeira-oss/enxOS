@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import '../config/enxcci_config.dart';
-import '../database/mysql_pool.dart';
-import '../dataniverse/dataniverse_client.dart';
-import '../engine/enxcci_engine.dart';
-import '../jobs/job_scheduler.dart';
+import 'package:enxcci/config/enxcci_config.dart';
+import 'package:enxcci/database/mysql_pool.dart';
+import 'package:enxcci/dataniverse/dataniverse_client.dart';
+import 'package:enxcci/engine/enxcci_engine.dart';
+import 'package:enxcci/jobs/job_scheduler.dart';
 
 class EnXLogEntry {
   EnXLogEntry(this.level, this.message, {DateTime? timestamp})
@@ -64,7 +64,7 @@ class AppController extends ChangeNotifier {
       onLog: (level, message) => controller.addLog(level, message),
       onJobUpdate: (job) => controller._handleJobUpdate(job),
     );
-    controller = AppController(
+    controller = AppController._(
       repository: repository,
       pool: pool,
       dataniverse: dataniverse,

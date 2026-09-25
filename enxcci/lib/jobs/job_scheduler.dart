@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:cron/cron.dart';
 
-import '../config/enxcci_config.dart';
-import '../database/mysql_pool.dart';
-import '../engine/enxcci_engine.dart';
+import 'package:enxcci/config/enxcci_config.dart';
+import 'package:enxcci/database/mysql_pool.dart';
+import 'package:enxcci/engine/enxcci_engine.dart';
 
 typedef SchedulerLog = void Function(String level, String message);
 typedef JobUpdate = void Function(EnXJob job);

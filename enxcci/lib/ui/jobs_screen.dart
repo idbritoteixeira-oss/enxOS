@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../config/enxcci_config.dart';
-import 'app_controller.dart';
+import 'package:enxcci/config/enxcci_config.dart';
+import 'package:enxcci/ui/app_controller.dart';
 
 class JobsScreen extends StatelessWidget {
   const JobsScreen({super.key, required this.controller});
@@ -89,7 +89,7 @@ Future<void> _showJobEditor(BuildContext context, AppController controller, EnXJ
       content: SingleChildScrollView(child: Form(key: formKey, child: Column(mainAxisSize: MainAxisSize.min, children: [
         _jobField(label, 'Nome'),
         DropdownButtonFormField<String>(
-          value: controller.connections.any((item) => item.id == connectionId) ? connectionId : null,
+          initialValue: controller.connections.any((item) => item.id == connectionId) ? connectionId : null,
           decoration: const InputDecoration(labelText: 'Conexão'),
           items: controller.connections.map((item) => DropdownMenuItem(value: item.id, child: Text(item.label))).toList(),
           onChanged: (value) => setState(() => connectionId = value ?? ''),

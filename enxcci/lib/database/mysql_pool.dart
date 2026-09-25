@@ -2,7 +2,7 @@ import 'dart:isolate';
 
 import 'package:mysql_client/mysql_client.dart';
 
-import '../config/enxcci_config.dart';
+import 'package:enxcci/config/enxcci_config.dart';
 
 class MysqlPingResult {
   const MysqlPingResult({

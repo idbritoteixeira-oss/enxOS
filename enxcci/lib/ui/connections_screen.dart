@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../config/enxcci_config.dart';
-import 'app_controller.dart';
+import 'package:enxcci/config/enxcci_config.dart';
+import 'package:enxcci/ui/app_controller.dart';
 
 class ConnectionsScreen extends StatelessWidget {
   const ConnectionsScreen({super.key, required this.controller});
@@ -64,7 +64,7 @@ class _ConnectionTileState extends State<_ConnectionTile> {
         child: ListTile(
           onTap: () => _showConnectionEditor(context, widget.controller, widget.connection),
           leading: CircleAvatar(
-            backgroundColor: (online == true ? const Color(0xFF41D5C3) : online == false ? const Color(0xFFFF6B7A) : Colors.white24).withOpacity(.16),
+            backgroundColor: (online == true ? const Color(0xFF41D5C3) : online == false ? const Color(0xFFFF6B7A) : Colors.white24).withValues(alpha: .16),
             child: Icon(Icons.storage, color: online == true ? const Color(0xFF41D5C3) : online == false ? const Color(0xFFFF6B7A) : Colors.white54),
           ),
           title: Text(widget.connection.label),

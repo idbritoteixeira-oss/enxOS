@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'app_controller.dart';
-import 'connections_screen.dart';
-import 'jobs_screen.dart';
-import 'log_screen.dart';
+import 'package:enxcci/ui/app_controller.dart';
+import 'package:enxcci/ui/connections_screen.dart';
+import 'package:enxcci/ui/jobs_screen.dart';
+import 'package:enxcci/ui/log_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.controller});
@@ -104,9 +104,9 @@ class _StatusCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [color.withOpacity(.18), const Color(0xFF171B2A)]),
+        gradient: LinearGradient(colors: [color.withValues(alpha: .18), const Color(0xFF171B2A)]),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(.36)),
+        border: Border.all(color: color.withValues(alpha: .36)),
       ),
       child: Row(
         children: [
