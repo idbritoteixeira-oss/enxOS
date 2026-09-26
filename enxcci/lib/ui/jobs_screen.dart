@@ -108,7 +108,7 @@ Future<void> _showJobEditor(
       TextEditingController(text: '${initial.intervalSeconds}');
   var scriptId = initial.scriptId.isNotEmpty
       ? initial.scriptId
-      : ScriptRegistry.getAll().firstOrNull?.id ?? '';
+      : ScriptRegistry.getAll().first.id;
   final formKey = GlobalKey<FormState>();
 
   await showDialog<void>(
@@ -124,12 +124,15 @@ Future<void> _showJobEditor(
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: ScriptRegistry.getAll().any((s) => s.id == scriptId)
-    ? scriptId
-    : null,
+                    ? scriptId
+                    : null,
                 decoration: const InputDecoration(labelText: 'Script'),
                 items: ScriptRegistry.getAll()
-    .map((s) => DropdownMenuItem(value: s.id ?? '', child: Text(s.label ?? '')))
-    .toList(),
+                    .map((s) => DropdownMenuItem(
+                          value: s.id,
+                          child: Text(s.label),
+                        ))
+                    .toList(),
                 onChanged: (value) =>
                     setState(() => scriptId = value ?? ''),
                 validator: (value) =>
