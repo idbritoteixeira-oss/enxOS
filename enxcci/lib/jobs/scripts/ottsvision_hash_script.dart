@@ -8,7 +8,7 @@ class OttsVisionHashScript extends EnXScript {
   String get id => 'ottsvision_hash';
 
   @override
-  String get label => 'OttsVision — Gravador de Hash';
+  String get label => 'OttsVision — Hash & seeds';
 
   @override
   Future<void> run({

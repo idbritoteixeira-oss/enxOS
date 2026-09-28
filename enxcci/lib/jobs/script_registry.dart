@@ -1,9 +1,11 @@
 import 'package:enxcci/jobs/job_script.dart';
 import 'package:enxcci/jobs/scripts/generic_script.dart';
 import 'package:enxcci/jobs/scripts/ottsvision_hash_script.dart';
+import 'package:enxcci/jobs/scripts/otts_seed_script.dart';
 
 class ScriptRegistry {
   static final Map<String, EnXScript> _scripts = {
+'otts_seed': OttsSeedScript(),
     GenericScript().id: GenericScript(),
     OttsVisionHashScript().id: OttsVisionHashScript(),
   };
