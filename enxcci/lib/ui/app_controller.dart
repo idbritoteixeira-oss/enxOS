@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -9,6 +11,26 @@ import 'package:enxcci/database/enx_api_provider.dart';
 import 'package:enxcci/dataniverse/dataniverse_client.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
 import 'package:enxcci/jobs/job_scheduler.dart';
+
+// Ponto de entrada superior necessário para rodar o Isolate em background
+@pragma('vm:entry-point')
+void startCallback() {
+  FlutterForegroundTask.setTaskHandler(EnXTaskHandler());
+}
+
+class EnXTaskHandler extends TaskHandler {
+  @override
+  Future<void> onStart(DateTime timestamp, SendPort? sendPort) async {}
+
+  @override
+  Future<void> onEvent(DateTime timestamp, SendPort? sendPort) async {}
+
+  @override
+  Future<void> onDestroy(DateTime timestamp, SendPort? sendPort) async {}
+
+  @override
+  void onNotificationPressed() => FlutterForegroundTask.launchApp();
+}
 
 class EnXLogEntry {
   EnXLogEntry(this.level, this.message, {DateTime? timestamp})
@@ -79,6 +101,10 @@ class AppController extends ChangeNotifier {
     jobs = repository.loadJobs();
     scheduler.updateConnections(connections);
     addLog('INFO', 'EnXcci iniciando');
+
+    // Inicia o processo persistente em segundo plano
+    await _startForegroundService();
+
     dataniverse.startRetryLoop();
     await refreshDataniverseStatus();
     await scheduler.start(jobs);
@@ -86,6 +112,28 @@ class AppController extends ChangeNotifier {
     _dataniverseTimer = Timer.periodic(const Duration(seconds: 5), (_) => refreshDataniverseStatus());
     initialized = true;
     notifyListeners();
+  }
+
+  Future<void> _startForegroundService() async {
+    if (await FlutterForegroundTask.isRunningService) return;
+
+    if (Platform.isAndroid) {
+      if (!await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
+        await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+      }
+      final NotificationPermission notificationPermissionStatus =
+          await FlutterForegroundTask.checkNotificationPermission();
+      if (notificationPermissionStatus != NotificationPermission.granted) {
+        await FlutterForegroundTask.requestNotificationPermission();
+      }
+    }
+
+    await FlutterForegroundTask.startService(
+      notificationTitle: 'EnXcci Engine em execução',
+      notificationText: 'Motor e agendador de jobs ativos',
+      callback: startCallback,
+    );
+    addLog('INFO', 'Serviço de background ativado');
   }
 
   Future<void> refreshDataniverseStatus() async {
@@ -191,6 +239,7 @@ class AppController extends ChangeNotifier {
     _dataniverseTimer?.cancel();
     scheduler.dispose();
     dataniverse.dispose();
+    FlutterForegroundTask.stopService();
     super.dispose();
   }
 

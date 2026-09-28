@@ -1,10 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import 'package:enxcci/ui/app_controller.dart';
 import 'package:enxcci/ui/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializa as configurações de notificação para o serviço em segundo plano
+  FlutterForegroundTask.init(
+    androidNotificationOptions: AndroidNotificationOptions(
+      channelId: 'enxcci_foreground',
+      channelName: 'EnXcci Engine',
+      channelDescription: 'Mantém os jobs e sincronização do EnX OS em segundo plano.',
+      channelImportance: NotificationChannelImportance.LOW,
+      priority: NotificationPriority.LOW,
+      iconData: const NotificationIconData(
+        resType: ResourceType.mipmap,
+        resPrefix: ResourcePrefix.ic,
+        name: 'launcher',
+      ),
+    ),
+    iosNotificationOptions: const IOSNotificationOptions(
+      showNotification: true,
+      playSound: false,
+    ),
+    foregroundTaskOptions: const ForegroundTaskOptions(
+      interval: 5000,
+      isOnceEvent: false,
+      autoRunOnBoot: true,
+      allowWakeLock: true,
+      allowWifiLock: true,
+    ),
+  );
+
   final controller = await AppController.create();
   runApp(EnXcciApp(controller: controller));
 }
