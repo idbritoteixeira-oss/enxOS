@@ -7,7 +7,7 @@ import 'package:enxcci/ui/home_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Inicializa as configurações de notificação para o serviço em segundo plano
+  // Inicializa as configurações de notificação para o serviço ForegroundService
   FlutterForegroundTask.init(
     androidNotificationOptions: AndroidNotificationOptions(
       channelId: 'enxcci_foreground',
