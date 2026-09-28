@@ -8,6 +8,8 @@ HTTP autenticado.
 
 ```bash
 export ENX_API_TOKEN='um-token-forte'
+# Opcional: quando definido, X-DTTS também será obrigatório.
+export ENX_DTTS_TOKEN='dtts-do-servidor'
 export MYSQL_HOST='127.0.0.1'
 export MYSQL_PORT='3306'
 export MYSQL_USER='...'
@@ -29,6 +31,10 @@ Para perfis adicionais, use variáveis como `MYSQL_REPORTING_HOST`,
 - `POST /query`
 - `POST /execute` (alias compatível)
 
-Todas exigem `X-EnX-Token`. O gateway bloqueia comandos que não começam com
-`SELECT`, `SHOW`, `DESCRIBE`, `DESC` ou `EXPLAIN`, e rejeita múltiplas
-instruções na mesma requisição.
+Todas exigem `X-EnX-Token`. Se `ENX_DTTS_TOKEN` estiver definido, também
+exigem o header HTTP `X-DTTS`. Em servidores CGI/PHP, esse mesmo header pode
+aparecer no ambiente como `HTTP_X_DTTS`; `HTTP_X_DTTS` não deve ser enviado
+literalmente pelo cliente.
+
+O gateway bloqueia comandos que não começam com `SELECT`, `SHOW`, `DESCRIBE`,
+`DESC` ou `EXPLAIN`, e rejeita múltiplas instruções na mesma requisição.

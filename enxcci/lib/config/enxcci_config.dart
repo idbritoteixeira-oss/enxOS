@@ -18,6 +18,7 @@ class EnXcciConfig {
   final String label;
   final String gatewayUrl;
   final String token;
+  final String dtts;
   final String profile;
   final bool active;
 
@@ -26,6 +27,7 @@ class EnXcciConfig {
     String? label,
     String? gatewayUrl,
     String? token,
+    String? dtts,
     String? profile,
     bool? active,
   }) {
@@ -33,8 +35,8 @@ class EnXcciConfig {
       id: id ?? this.id,
       label: label ?? this.label,
       gatewayUrl: gatewayUrl ?? this.gatewayUrl,
-      dtts: dtts ?? this.dtts,
       token: token ?? this.token,
+      dtts: dtts ?? this.dtts,
       profile: profile ?? this.profile,
       active: active ?? this.active,
     );

@@ -27,6 +27,8 @@ except ImportError as error:  # pragma: no cover - mensagem de inicialização
 
 READ_ONLY_SQL = re.compile(r"^\s*(SELECT|SHOW|DESCRIBE|DESC|EXPLAIN)\b", re.IGNORECASE)
 MAX_BODY_BYTES = 2 * 1024 * 1024
+ENX_TOKEN_HEADER = "X-EnX-Token"
+DTTS_HEADER = "X-DTTS"
 
 
 def env(name: str, default: str = "") -> str:
@@ -76,8 +78,20 @@ class GatewayHandler(BaseHTTPRequestHandler):
 
     def _authorized(self) -> bool:
         configured = env("ENX_API_TOKEN")
-        received = self.headers.get("X-EnX-Token", "")
+        received = self.headers.get(ENX_TOKEN_HEADER, "")
         return bool(configured) and hmac.compare_digest(received, configured)
+
+    def _dtts_authorized(self) -> bool:
+        """Valida DTTS quando o servidor foi configurado para exigi-lo.
+
+        Sem ENX_DTTS_TOKEN o gateway mantém compatibilidade com o contrato
+        anterior, que exigia somente ENX_API_TOKEN.
+        """
+        configured = env("ENX_DTTS_TOKEN")
+        if not configured:
+            return True
+        received = self.headers.get(DTTS_HEADER, "")
+        return hmac.compare_digest(received, configured)
 
     def _read_payload(self) -> dict[str, Any] | None:
         try:
@@ -100,6 +114,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if not self._authorized():
             self._send_json(HTTPStatus.UNAUTHORIZED, {"status": "error", "message": "Token inválido"})
             return
+        if not self._dtts_authorized():
+            self._send_json(HTTPStatus.UNAUTHORIZED, {"status": "error", "message": "DTTS inválido"})
+            return
         self._send_json(
             HTTPStatus.OK,
             {"status": "success", "data": {"service": "enx-api-gateway", "mysql": "ready"}},
@@ -112,6 +129,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if not self._authorized():
             self._send_json(HTTPStatus.UNAUTHORIZED, {"status": "error", "message": "Token inválido"})
+            return
+        if not self._dtts_authorized():
+            self._send_json(HTTPStatus.UNAUTHORIZED, {"status": "error", "message": "DTTS inválido"})
             return
 
         payload = self._read_payload()

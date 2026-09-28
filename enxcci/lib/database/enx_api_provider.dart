@@ -54,51 +54,61 @@ class EnXApiProvider {
     }
   }
 
-  Future<List<Map<String, dynamic>>> query(String sql) {
+  Future<List<Map<String, dynamic>>> query(
+    String sql, {
+    String? dtts,
+  }) {
     return _query(
       baseUrl: config.gatewayUrl,
       token: config.token,
       profile: config.profile,
       sql: sql,
+      dtts: _effectiveDtts(dtts),
     );
   }
 
-  Future<List<Map<String, dynamic>>> queryInIsolate(String sql) {
-    return queryConfigInIsolate(config, sql);
+  Future<List<Map<String, dynamic>>> queryInIsolate(
+    String sql, {
+    String? dtts,
+  }) {
+    return queryConfigInIsolate(config, sql, dtts: dtts);
   }
 
   static Future<List<Map<String, dynamic>>> queryConfigInIsolate(
     EnXcciConfig config,
-    String sql,
-  ) {
+    String sql, {
+    String? dtts,
+  }) {
     return Isolate.run(() => _query(
           baseUrl: config.gatewayUrl,
           token: config.token,
           profile: config.profile,
           sql: sql,
-          dtts: dtts,
+          dtts: _optionalValue(dtts) ?? _optionalValue(config.dtts),
         ));
   }
 
   static Future<List<Map<String, dynamic>>> _query({
-  required String baseUrl,
-  required String token,
-  required String profile,
-  required String sql,
-  String? dtts,
-}) async {
-  final response = await http.post(
-    _buildUri(baseUrl, '/query'),
-    headers: {
-      'Content-Type': 'application/json',
-      'X-EnX-Token': token,
-      if (dtts != null) 'X-Dtts': dtts,
-    },
-    body: jsonEncode({
-      'query': sql,
-      'profile': profile,
-    }),
-  ).timeout(const Duration(seconds: 30));
+    required String baseUrl,
+    required String token,
+    required String profile,
+    required String sql,
+    String? dtts,
+  }) async {
+    final response = await http
+        .post(
+          _buildUri(baseUrl, '/query'),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-EnX-Token': token,
+            if (_optionalValue(dtts) != null) 'X-DTTS': _optionalValue(dtts)!,
+          },
+          body: jsonEncode({
+            'query': sql,
+            'profile': profile,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
     final decoded = _decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError(decoded['message']?.toString() ?? 'Gateway rejeitou a consulta');
@@ -116,7 +126,17 @@ class EnXApiProvider {
   Map<String, String> _headers() => {
         'Accept': 'application/json',
         'X-EnX-Token': config.token,
+        if (_optionalValue(config.dtts) != null)
+          'X-DTTS': _optionalValue(config.dtts)!,
       };
+
+  String? _effectiveDtts(String? dtts) =>
+      _optionalValue(dtts) ?? _optionalValue(config.dtts);
+
+  static String? _optionalValue(String? value) {
+    final normalized = value?.trim() ?? '';
+    return normalized.isEmpty ? null : normalized;
+  }
 
   Uri _uri(String path) => _buildUri(config.gatewayUrl, path);
 

@@ -53,3 +53,5 @@ log filtrável/copiável.
 - O Dataniverse REST precisa estar rodando no mesmo dispositivo em
   `http://127.0.0.1:8080`, ou o modo TCP deve usar `127.0.0.1:8081`.
 - O gateway exige `ENX_API_TOKEN` e as variáveis `MYSQL_*` no servidor.
+- `ENX_DTTS_TOKEN` é opcional; quando definido, o cliente deve enviar
+  `X-DTTS`. Em CGI/PHP, esse header aparece como `HTTP_X_DTTS`.
