@@ -67,6 +67,28 @@ class EnXApiProvider {
     );
   }
 
+  Future<void> storeDtts({
+    required String dtts,
+    String? previousDtts,
+  }) async {
+    final response = await _client
+        .post(
+          _uri('/dtts'),
+          headers: _headers(dtts: previousDtts),
+          body: jsonEncode({
+            'dtts': dtts,
+            'profile': config.profile,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+    final decoded = _decode(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw StateError(
+        decoded['message']?.toString() ?? 'Gateway rejeitou o novo DTTS',
+      );
+    }
+  }
+
   Future<List<Map<String, dynamic>>> queryInIsolate(
     String sql, {
     String? dtts,
@@ -84,7 +106,7 @@ class EnXApiProvider {
           token: config.token,
           profile: config.profile,
           sql: sql,
-          dtts: _optionalValue(dtts) ?? _optionalValue(config.dtts),
+           dtts: _optionalValue(dtts),
         ));
   }
 
@@ -123,15 +145,13 @@ class EnXApiProvider {
         .toList();
   }
 
-  Map<String, String> _headers() => {
+  Map<String, String> _headers({String? dtts}) => {
         'Accept': 'application/json',
         'X-EnX-Token': config.token,
-        if (_optionalValue(config.dtts) != null)
-          'X-DTTS': _optionalValue(config.dtts)!,
+        if (_optionalValue(dtts) != null) 'X-DTTS': _optionalValue(dtts)!,
       };
 
-  String? _effectiveDtts(String? dtts) =>
-      _optionalValue(dtts) ?? _optionalValue(config.dtts);
+  String? _effectiveDtts(String? dtts) => _optionalValue(dtts);
 
   static String? _optionalValue(String? value) {
     final normalized = value?.trim() ?? '';

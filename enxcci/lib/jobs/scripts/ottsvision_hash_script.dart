@@ -1,5 +1,6 @@
 import 'package:enxcci/config/enxcci_config.dart';
 import 'package:enxcci/dataniverse/dataniverse_client.dart';
+import 'package:enxcci/database/enx_api_provider.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
 import 'package:enxcci/jobs/job_script.dart';
 
@@ -17,6 +18,17 @@ class OttsVisionHashScript extends EnXScript {
     required EnXcciEngine engine,
     required EngineLog log,
   }) async {
+    final activeConnections =
+        connections.values.where((connection) => connection.active).toList();
+    if (activeConnections.isEmpty) {
+      log('ERROR', 'OttsVision: nenhuma conexão externa ativa para gravar o DTTS');
+      return;
+    }
+
+    final config = activeConnections.first;
+    final previousDtts = await OttsVision.currentDtts(dataniverse);
+    final api = EnXApiProvider(config: config);
+
     try {
       // ETAPA 1: limpeza — remove registros com mais de 12 minutos
       final records = await dataniverse.command({
@@ -42,6 +54,7 @@ class OttsVisionHashScript extends EnXScript {
       // ETAPA 2: gera hash EnX32 a partir do timestamp
       final hash64 = OttsVision.generateHash64();
       final seeds = OttsVision.sliceSeeds(hash64);
+      final dtts = OttsVision.dttsFromSeeds(seeds);
 
       // ETAPA 3: soma os últimos 3 dígitos do timestamp ao hash
       final timestamp = DateTime.now().microsecondsSinceEpoch;
@@ -54,7 +67,24 @@ class OttsVisionHashScript extends EnXScript {
           .padLeft(64, '0');
       final criptoFinal = cripto.substring(cripto.length - 64);
 
-      // ETAPA 4: grava no Dataniverse
+      // ETAPA 4: grava o novo DTTS no MySQL externo.
+      // O DTTS anterior autentica a rotação; na primeira execução o gateway
+      // aceita apenas o X-EnX-Token porque ainda não existe valor anterior.
+      await api.storeDtts(
+        dtts: dtts,
+        previousDtts: previousDtts,
+      );
+
+      // ETAPA 5: grava o mesmo DTTS no Dataniverse.
+      await dataniverse.command({
+        'action': 'INSERT',
+        'table': 'dtts',
+        'data': {
+          'dtts': dtts,
+        },
+      });
+
+      // ETAPA 6: grava o hash e as oito seeds no Dataniverse.
       final chain = OttsChain(
         idModulo: 'ottsvision',
         seed: seeds.first,
@@ -79,9 +109,14 @@ class OttsVisionHashScript extends EnXScript {
         },
       });
 
-      log('SUCCESS', 'OttsVision: hash gravado — ${criptoFinal.substring(0, 16)}...');
+      log(
+        'SUCCESS',
+        'OttsVision: hash e DTTS gravados — ${criptoFinal.substring(0, 16)}...',
+      );
     } catch (e) {
       log('ERROR', 'OttsVision hash: $e');
+    } finally {
+      api.dispose();
     }
   }
 }

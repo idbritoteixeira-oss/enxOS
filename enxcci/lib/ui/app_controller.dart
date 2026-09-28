@@ -199,7 +199,6 @@ class AppController extends ChangeNotifier {
         label: 'Gateway ${connections.length + 1}',
         gatewayUrl: 'http://127.0.0.1:8099',
         token: '',
-        dtts: '',
         profile: 'default',
       );
   EnXJob newJob() => EnXJob(

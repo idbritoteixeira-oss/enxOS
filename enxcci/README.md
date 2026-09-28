@@ -33,10 +33,11 @@ executa análise/testes e publica o APK release como artefato do GitHub Actions.
 
 O serviço Python em `bridge/` substitui conexões diretas do Android à porta
 3306. Ele escuta HTTP no `PORT` configurado (8099 por padrão), exige
-`X-EnX-Token` e consulta o MySQL local do servidor. Quando o gateway estiver
-configurado com `ENX_DTTS_TOKEN`, o app também envia o valor no header
-`X-DTTS`. A camada Flutter permite cadastrar URL, tokens e perfil do gateway
-sem armazenar credenciais MySQL no dispositivo.
+`X-EnX-Token` e consulta o MySQL local do servidor. O script OttsVision gera
+automaticamente o DTTS, grava-o no Dataniverse e o registra no MySQL externo
+pela rota `/dtts`, usando o DTTS anterior para validar a rotação. A camada
+Flutter permite cadastrar URL, token e perfil do gateway sem armazenar o DTTS
+na conexão.
 
 ```bash
 python3 -m pip install -r bridge/requirements.txt

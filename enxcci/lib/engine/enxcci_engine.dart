@@ -23,6 +23,14 @@ class OttsVision {
     );
   }
 
+  static String dttsFromSeeds(List<int> seeds) {
+    if (seeds.length < 2) {
+      throw ArgumentError('São necessárias pelo menos duas seeds para gerar o DTTS');
+    }
+    return '${seeds[0].toString().padLeft(8, '0')}'
+        '${seeds[1].toString().padLeft(8, '0')}';
+  }
+
   static bool isExpired(DateTime createdAt) =>
       DateTime.now().difference(createdAt).inSeconds > 60;
   

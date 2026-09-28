@@ -62,6 +62,25 @@ def json_default(value: Any) -> str:
     return str(value)
 
 
+def latest_dtts(profile: str) -> str | None:
+    connection = None
+    cursor = None
+    try:
+        connection = mysql.connector.connect(**db_config(profile))
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT dtts FROM dtts")
+        rows = cursor.fetchall()
+        row = rows[-1] if rows else None
+        if not row or row.get("dtts") is None:
+            return None
+        return str(row["dtts"])
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None and connection.is_connected():
+            connection.close()
+
+
 class GatewayHandler(BaseHTTPRequestHandler):
     server_version = "EnXApiGateway/1.0"
 
@@ -81,17 +100,17 @@ class GatewayHandler(BaseHTTPRequestHandler):
         received = self.headers.get(ENX_TOKEN_HEADER, "")
         return bool(configured) and hmac.compare_digest(received, configured)
 
-    def _dtts_authorized(self) -> bool:
-        """Valida DTTS quando o servidor foi configurado para exigi-lo.
+    def _dtts_authorized(self, profile: str) -> bool:
+        """Valida o DTTS recebido contra o último valor gravado no MySQL.
 
-        Sem ENX_DTTS_TOKEN o gateway mantém compatibilidade com o contrato
-        anterior, que exigia somente ENX_API_TOKEN.
+        A tabela vazia é o estado inicial de bootstrap: nesse caso o token
+        principal já autenticado pode gravar o primeiro DTTS em /dtts.
         """
-        configured = env("ENX_DTTS_TOKEN")
-        if not configured:
+        expected = latest_dtts(profile)
+        if expected is None:
             return True
         received = self.headers.get(DTTS_HEADER, "")
-        return hmac.compare_digest(received, configured)
+        return bool(received) and hmac.compare_digest(received, expected)
 
     def _read_payload(self) -> dict[str, Any] | None:
         try:
@@ -114,9 +133,6 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if not self._authorized():
             self._send_json(HTTPStatus.UNAUTHORIZED, {"status": "error", "message": "Token inválido"})
             return
-        if not self._dtts_authorized():
-            self._send_json(HTTPStatus.UNAUTHORIZED, {"status": "error", "message": "DTTS inválido"})
-            return
         self._send_json(
             HTTPStatus.OK,
             {"status": "success", "data": {"service": "enx-api-gateway", "mysql": "ready"}},
@@ -124,14 +140,11 @@ class GatewayHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path not in {"/query", "/execute"}:
+        if path not in {"/query", "/execute", "/dtts"}:
             self._send_json(HTTPStatus.NOT_FOUND, {"status": "error", "message": "Rota não encontrada"})
             return
         if not self._authorized():
             self._send_json(HTTPStatus.UNAUTHORIZED, {"status": "error", "message": "Token inválido"})
-            return
-        if not self._dtts_authorized():
-            self._send_json(HTTPStatus.UNAUTHORIZED, {"status": "error", "message": "DTTS inválido"})
             return
 
         payload = self._read_payload()
@@ -139,8 +152,52 @@ class GatewayHandler(BaseHTTPRequestHandler):
             self._send_json(HTTPStatus.BAD_REQUEST, {"status": "error", "message": "JSON inválido ou grande demais"})
             return
 
-        query = payload.get("query")
         profile = str(payload.get("profile", "default"))
+        if path == "/dtts":
+            new_dtts = payload.get("dtts")
+            if not isinstance(new_dtts, str) or not new_dtts.strip():
+                self._send_json(
+                    HTTPStatus.BAD_REQUEST,
+                    {"status": "error", "message": "dtts é obrigatório"},
+                )
+                return
+            try:
+                if not self._dtts_authorized(profile):
+                    self._send_json(
+                        HTTPStatus.UNAUTHORIZED,
+                        {"status": "error", "message": "DTTS anterior inválido"},
+                    )
+                    return
+                connection = mysql.connector.connect(**db_config(profile))
+                cursor = connection.cursor()
+                cursor.execute(
+                    "INSERT INTO dtts (dtts) VALUES (%s)",
+                    (new_dtts.strip(),),
+                )
+                connection.commit()
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"status": "success", "data": {"dtts": new_dtts.strip()}},
+                )
+            except (MySqlError, ValueError) as error:
+                self._send_json(
+                    HTTPStatus.BAD_GATEWAY,
+                    {"status": "error", "message": f"Falha ao gravar DTTS: {error}"},
+                )
+            finally:
+                if "cursor" in locals() and cursor is not None:
+                    cursor.close()
+                if "connection" in locals() and connection is not None:
+                    connection.close()
+            return
+
+        query = payload.get("query")
+        if not self._dtts_authorized(profile):
+            self._send_json(
+                HTTPStatus.UNAUTHORIZED,
+                {"status": "error", "message": "DTTS inválido"},
+            )
+            return
         params = payload.get("params", [])
         if not isinstance(query, str) or not query.strip():
             self._send_json(HTTPStatus.BAD_REQUEST, {"status": "error", "message": "query é obrigatória"})

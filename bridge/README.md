@@ -8,8 +8,6 @@ HTTP autenticado.
 
 ```bash
 export ENX_API_TOKEN='um-token-forte'
-# Opcional: quando definido, X-DTTS também será obrigatório.
-export ENX_DTTS_TOKEN='dtts-do-servidor'
 export MYSQL_HOST='127.0.0.1'
 export MYSQL_PORT='3306'
 export MYSQL_USER='...'
@@ -25,16 +23,29 @@ Para perfis adicionais, use variáveis como `MYSQL_REPORTING_HOST`,
 `MYSQL_REPORTING_USER`, `MYSQL_REPORTING_DATABASE`, e envie
 `{"profile":"reporting"}` na consulta.
 
+A tabela externa precisa expor pelo menos a coluna `dtts`:
+
+```sql
+CREATE TABLE dtts (
+  dtts VARCHAR(255) NOT NULL
+);
+```
+
 ## Rotas
 
 - `GET /health`
 - `POST /query`
 - `POST /execute` (alias compatível)
+- `POST /dtts`
 
-Todas exigem `X-EnX-Token`. Se `ENX_DTTS_TOKEN` estiver definido, também
-exigem o header HTTP `X-DTTS`. Em servidores CGI/PHP, esse mesmo header pode
-aparecer no ambiente como `HTTP_X_DTTS`; `HTTP_X_DTTS` não deve ser enviado
-literalmente pelo cliente.
+Todas exigem `X-EnX-Token`. Consultas em `/query` e `/execute` também exigem
+o último DTTS salvo na tabela `dtts`, enviado no header HTTP `X-DTTS`. Em
+servidores CGI/PHP, esse mesmo header pode aparecer no ambiente como
+`HTTP_X_DTTS`; `HTTP_X_DTTS` não deve ser enviado literalmente pelo cliente.
+
+`/dtts` recebe `{"dtts":"..."}`. Na primeira gravação basta o
+`X-EnX-Token`; nas seguintes, o cliente deve enviar o DTTS anterior em
+`X-DTTS`. Isso permite a rotação automática sem colocar DTTS fixo na conexão.
 
 O gateway bloqueia comandos que não começam com `SELECT`, `SHOW`, `DESCRIBE`,
 `DESC` ou `EXPLAIN`, e rejeita múltiplas instruções na mesma requisição.

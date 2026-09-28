@@ -10,6 +10,13 @@ void main() {
     expect(OttsVision.sliceSeeds(hash), hasLength(8));
   });
 
+  test('OttsVision deriva o DTTS de seed_1 e seed_2', () {
+    expect(
+      OttsVision.dttsFromSeeds([1, 2, 3, 4, 5, 6, 7, 8]),
+      '0000000100000002',
+    );
+  });
+
   test('EnXCrypt cifra e decifra o conteúdo', () {
     const content = 'registro enxOS';
     final encrypted = EnXCrypt.enXCrypt(content, BigInt.from(12345678));

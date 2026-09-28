@@ -105,7 +105,6 @@ Future<void> _showConnectionEditor(BuildContext context, AppController controlle
   final label = TextEditingController(text: initial.label);
   final gatewayUrl = TextEditingController(text: initial.gatewayUrl);
   final token = TextEditingController(text: initial.token);
-  final dtts = TextEditingController(text: initial.dtts);
   final profile = TextEditingController(text: initial.profile);
   final formKey = GlobalKey<FormState>();
   await showDialog<void>(
@@ -116,7 +115,16 @@ Future<void> _showConnectionEditor(BuildContext context, AppController controlle
         _field(label, 'Nome'),
         _field(gatewayUrl, 'URL do API Gateway'),
         _field(token, 'Token X-EnX-Token', obscure: true),
-        _field(dtts, 'DTTS (header X-DTTS)', obscure: true, required: false),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'O DTTS é gerado e renovado automaticamente pelo OttsVision.',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ),
+        ),
         _field(profile, 'Perfil MySQL no gateway'),
       ]))),
       actions: [
@@ -128,7 +136,6 @@ Future<void> _showConnectionEditor(BuildContext context, AppController controlle
               label: label.text.trim(),
               gatewayUrl: gatewayUrl.text.trim(),
               token: token.text,
-              dtts: dtts.text.trim(),
               profile: profile.text.trim(),
             ));
             if (context.mounted) Navigator.pop(context);
