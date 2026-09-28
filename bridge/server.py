@@ -140,7 +140,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path not in {"/query", "/execute", "/dtts"}:
+        if path not in {"/query", "/execute", "/dtts", "/dtts/update"}:
             self._send_json(HTTPStatus.NOT_FOUND, {"status": "error", "message": "Rota não encontrada"})
             return
         if not self._authorized():
@@ -153,7 +153,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
 
         profile = str(payload.get("profile", "default"))
-        if path == "/dtts":
+        if path in {"/dtts", "/dtts/update"}:
             new_dtts = payload.get("dtts")
             if not isinstance(new_dtts, str) or not new_dtts.strip():
                 self._send_json(

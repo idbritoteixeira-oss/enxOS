@@ -36,14 +36,15 @@ CREATE TABLE dtts (
 - `GET /health`
 - `POST /query`
 - `POST /execute` (alias compatível)
-- `POST /dtts`
+- `POST /dtts/update` (rota principal)
+- `POST /dtts` (alias compatível)
 
 Todas exigem `X-EnX-Token`. Consultas em `/query` e `/execute` também exigem
 o último DTTS salvo na tabela `dtts`, enviado no header HTTP `X-DTTS`. Em
 servidores CGI/PHP, esse mesmo header pode aparecer no ambiente como
 `HTTP_X_DTTS`; `HTTP_X_DTTS` não deve ser enviado literalmente pelo cliente.
 
-`/dtts` recebe `{"dtts":"..."}`. Na primeira gravação basta o
+`/dtts/update` recebe `{"dtts":"..."}`. Na primeira gravação basta o
 `X-EnX-Token`; nas seguintes, o cliente deve enviar o DTTS anterior em
 `X-DTTS`. Isso permite a rotação automática sem colocar DTTS fixo na conexão.
 

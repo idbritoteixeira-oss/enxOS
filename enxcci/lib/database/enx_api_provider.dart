@@ -73,7 +73,7 @@ class EnXApiProvider {
   }) async {
     final response = await _client
         .post(
-          _uri('/dtts'),
+          _uri('/dtts/update'),
           headers: _headers(dtts: previousDtts),
           body: jsonEncode({
             'dtts': dtts,

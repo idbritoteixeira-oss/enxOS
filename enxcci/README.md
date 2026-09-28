@@ -35,7 +35,7 @@ O serviço Python em `bridge/` substitui conexões diretas do Android à porta
 3306. Ele escuta HTTP no `PORT` configurado (8099 por padrão), exige
 `X-EnX-Token` e consulta o MySQL local do servidor. O script OttsVision gera
 automaticamente o DTTS, grava-o no Dataniverse e o registra no MySQL externo
-pela rota `/dtts`, usando o DTTS anterior para validar a rotação. A camada
+pela rota `/dtts/update`, usando o DTTS anterior para validar a rotação. A camada
 Flutter permite cadastrar URL, token e perfil do gateway sem armazenar o DTTS
 na conexão.
 
