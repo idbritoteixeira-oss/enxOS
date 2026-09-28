@@ -30,11 +30,12 @@ class EnXTaskHandler extends TaskHandler {
   Future<void> onDestroy(DateTime timestamp) async {}
 
   @override
-  void NotificationButtonPressed(String id) {}
+  void onNotificationButtonPressed(String id) {}
 
   @override
-  void NotificationDismissed() {}
+  void onNotificationDismissed() {}
 
+  @override
   void onNotificationPressed() => FlutterForegroundTask.launchApp();
 }
 
