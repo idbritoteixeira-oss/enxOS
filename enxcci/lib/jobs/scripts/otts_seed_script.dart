@@ -3,14 +3,14 @@ import 'package:enxcci/dataniverse/dataniverse_client.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
 import 'package:enxcci/engine/modules/enx_crypt.dart';
 import 'package:enxcci/jobs/job_script.dart';
-import 'package:mysql_client/mysql_client.dart';
+import 'package:enxcci/providers/enx_api_provider.dart';
 
 class OttsSeedScript extends EnXScript {
   @override
   String get id => 'otts_seed';
 
   @override
-  String get label => 'OttsSeed — Seal';
+  String get label => 'OttsSeed — Selagem Automática (Módulos 1-8)';
 
   @override
   Future<void> run({
@@ -19,38 +19,27 @@ class OttsSeedScript extends EnXScript {
     required EnXcciEngine engine,
     required EngineLog log,
   }) async {
-    
     final config = connections.values.firstOrNull;
     if (config == null) {
-      log('ERROR', 'OttsSeed: nenhuma conexão MySQL configurada');
+      log('ERROR', 'OttsSeed: nenhuma conexão configurada');
       return;
     }
 
-    MySQLConnection? conn;
+    final api = EnXApiProvider(config: config);
     try {
-      conn = await MySQLConnection.createConnection(
-        host: config.host,
-        port: config.port,
-        userName: config.user,
-        password: config.password,
-        databaseName: config.database,
-      );
-      await conn.connect();
-
       for (int modulo = 1; modulo <= 8; modulo++) {
-        await _processModulo(conn, modulo, log);
+        await _processModulo(api, modulo, log);
       }
-
       log('SUCCESS', 'OttsSeed: selagem concluída para módulos 1-8');
     } catch (e) {
       log('ERROR', 'OttsSeed fatal: $e');
     } finally {
-      await conn?.close();
+      api.dispose();
     }
   }
 
   Future<void> _processModulo(
-    MySQLConnection conn,
+    EnXApiProvider api,
     int moduloId,
     EngineLog log,
   ) async {
@@ -58,69 +47,58 @@ class OttsSeedScript extends EnXScript {
     final colunaFatia = 'seed_$moduloId';
 
     try {
-      // ETAPA 1: limpa registros fechados anteriores
-      await conn.execute('DELETE FROM $tabela WHERE seal = "closed"');
+      // ETAPA 1: limpa registros fechados
+      await api.query('DELETE FROM $tabela WHERE seal = "closed"');
 
       // ETAPA 2: busca fila collecting (mais antigos primeiro)
-      final resultCollecting = await conn.execute(
+      final coletas = await api.query(
         'SELECT id, seed, inseed, content FROM $tabela '
         'WHERE seal = "collecting" ORDER BY id ASC LIMIT 500',
       );
 
-      final coletas = resultCollecting.rows.toList();
-      if (coletas.isEmpty) {
-        return;
-      }
+      if (coletas.isEmpty) return;
 
-      log('INFO', 'OttsSeed módulo $moduloId: ${coletas.length} registros na fila');
+      log('INFO', 'OttsSeed módulo $moduloId: ${coletas.length} na fila');
 
       for (final row in coletas) {
-        final id = row.colByName('id');
-        final seedBase = row.colByName('seed') ?? '';
-        final inSeed = row.colByName('inseed') ?? '';
-        final content = row.colByName('content') ?? '';
+        final id = row['id']?.toString() ?? '';
+        final seedBase = row['seed']?.toString() ?? '';
+        final inSeed = row['inseed']?.toString() ?? '';
+        final content = row['content']?.toString() ?? '';
 
         // Cifra o content com EnXCrypt
         final inSeedBig = BigInt.tryParse(inSeed) ?? BigInt.zero;
         final hashCifrado = EnXCrypt.enXCrypt(content, inSeedBig);
 
-        // Pega os primeiros 8 dígitos da seed
-        final seedOitoDigitos = seedBase.length >= 8
+        // Primeiros 8 dígitos da seed
+        final seedOito = seedBase.length >= 8
             ? seedBase.substring(0, 8)
             : seedBase.padLeft(8, '0');
 
         // ETAPA 3: busca seed_1 e seed_2 no ottshash
-        final resultHash = await conn.execute(
+        final rowsHash = await api.query(
           'SELECT seed_1, seed_2 FROM ottshash '
-          'WHERE $colunaFatia = :seed LIMIT 1',
-          {'seed': seedOitoDigitos},
+          'WHERE $colunaFatia = "$seedOito" LIMIT 1',
         );
 
-        if (resultHash.rows.isEmpty) {
-          log('WARN', 'OttsSeed módulo $moduloId: sem ottshash para seed $seedOitoDigitos');
+        if (rowsHash.isEmpty) {
+          log('WARN', 'OttsSeed módulo $moduloId: sem ottshash para $seedOito');
           continue;
         }
 
-        final rowHash = resultHash.rows.first;
-        final seed1 = rowHash.colByName('seed_1') ?? '';
-        final seed2 = rowHash.colByName('seed_2') ?? '';
+        final seed1 = rowsHash.first['seed_1']?.toString() ?? '';
+        final seed2 = rowsHash.first['seed_2']?.toString() ?? '';
         final chainHash = '$seed1$seed2';
 
         // ETAPA 4: insere em ottschain
-        await conn.execute(
+        await api.query(
           'INSERT INTO ottschain (ottschain, seed, hash) '
-          'VALUES (:chain, :seed, :hash)',
-          {
-            'chain': chainHash,
-            'seed': seedOitoDigitos,
-            'hash': hashCifrado,
-          },
+          'VALUES ("$chainHash", "$seedOito", "$hashCifrado")',
         );
 
         // ETAPA 5: fecha o registro
-        await conn.execute(
-          'UPDATE $tabela SET seal = "closed" WHERE id = :id',
-          {'id': id},
+        await api.query(
+          'UPDATE $tabela SET seal = "closed" WHERE id = "$id"',
         );
       }
     } catch (e) {
