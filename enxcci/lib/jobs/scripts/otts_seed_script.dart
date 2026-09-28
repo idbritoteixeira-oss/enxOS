@@ -19,7 +19,7 @@ class OttsSeedScript extends EnXScript {
     required EnXcciEngine engine,
     required EngineLog log,
   }) async {
-    // Pega a primeira conexão MySQL disponível
+    
     final config = connections.values.firstOrNull;
     if (config == null) {
       log('ERROR', 'OttsSeed: nenhuma conexão MySQL configurada');
