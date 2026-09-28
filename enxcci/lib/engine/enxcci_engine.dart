@@ -25,6 +25,23 @@ class OttsVision {
 
   static bool isExpired(DateTime createdAt) =>
       DateTime.now().difference(createdAt).inSeconds > 60;
+  
+  static Future<String?> currentDtts(DataniverseClient dataniverse) async {
+    try {
+      final result = await dataniverse.command({
+        'action': 'LIST_RECORDS',
+        'table': 'dtts',
+      });
+      final data = result['data'];
+      if (data is! List || data.isEmpty) return null;
+
+      // Pega o mais recente (último inserido)
+      final last = data.last;
+      return last['dtts']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 class OttsChain {

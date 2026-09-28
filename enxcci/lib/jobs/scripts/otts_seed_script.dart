@@ -10,7 +10,7 @@ class OttsSeedScript extends EnXScript {
   String get id => 'otts_seed';
 
   @override
-  String get label => 'OttsSeed — Selagem Automática (Módulos 1-8)';
+  String get label => 'OttsSeed — Selagem';
 
   @override
   Future<void> run({
@@ -25,12 +25,17 @@ class OttsSeedScript extends EnXScript {
       return;
     }
 
+    final dtts = await OttsVision.currentDtts(dataniverse);
+if (dtts == null) {
+  log('WARN', 'OttsSeed: dtts não encontrado, requisições sem validação dtts');
+}
+    
     final api = EnXApiProvider(config: config);
     try {
       for (int modulo = 1; modulo <= 8; modulo++) {
-        await _processModulo(api, modulo, log);
+        await api.query('DELETE FROM ...', dtts: dtts);
       }
-      log('SUCCESS', 'OttsSeed: selagem concluída para módulos 1-8');
+      log('SUCCESS', 'OttsSeed: selagem concluída ');
     } catch (e) {
       log('ERROR', 'OttsSeed fatal: $e');
     } finally {

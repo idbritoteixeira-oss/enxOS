@@ -76,28 +76,29 @@ class EnXApiProvider {
           token: config.token,
           profile: config.profile,
           sql: sql,
+          dtts: dtts,
         ));
   }
 
   static Future<List<Map<String, dynamic>>> _query({
-    required String baseUrl,
-    required String token,
-    required String profile,
-    required String sql,
-  }) async {
-    final response = await http
-        .post(
-          _buildUri(baseUrl, '/query'),
-          headers: {
-            'Content-Type': 'application/json',
-            'X-EnX-Token': token,
-          },
-          body: jsonEncode({
-            'query': sql,
-            'profile': profile,
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
+  required String baseUrl,
+  required String token,
+  required String profile,
+  required String sql,
+  String? dtts,
+}) async {
+  final response = await http.post(
+    _buildUri(baseUrl, '/query'),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-EnX-Token': token,
+      if (dtts != null) 'X-Dtts': dtts,
+    },
+    body: jsonEncode({
+      'query': sql,
+      'profile': profile,
+    }),
+  ).timeout(const Duration(seconds: 30));
     final decoded = _decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError(decoded['message']?.toString() ?? 'Gateway rejeitou a consulta');
