@@ -3,7 +3,7 @@ import 'package:enxcci/dataniverse/dataniverse_client.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
 import 'package:enxcci/engine/modules/enx_crypt.dart';
 import 'package:enxcci/jobs/job_script.dart';
-import 'package:enxcci/providers/enx_api_provider.dart';
+import 'package:enxcci/database/enx_api_provider.dart';
 
 class OttsSeedScript extends EnXScript {
   @override
