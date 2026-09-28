@@ -9,6 +9,7 @@ class EnXcciConfig {
     required this.label,
     required this.gatewayUrl,
     required this.token,
+    required this.dtts,
     required this.profile,
     this.active = true,
   });
@@ -32,6 +33,7 @@ class EnXcciConfig {
       id: id ?? this.id,
       label: label ?? this.label,
       gatewayUrl: gatewayUrl ?? this.gatewayUrl,
+      dtts: dtts ?? this.dtts,
       token: token ?? this.token,
       profile: profile ?? this.profile,
       active: active ?? this.active,
@@ -43,6 +45,7 @@ class EnXcciConfig {
         'label': label,
         'gatewayUrl': gatewayUrl,
         'token': token,
+        'dtts': dtts,
         'profile': profile,
         'active': active,
       };
@@ -52,6 +55,7 @@ class EnXcciConfig {
         label: json['label'] as String? ?? 'Gateway enxOS',
         gatewayUrl: json['gatewayUrl'] as String? ?? 'http://127.0.0.1:8099',
         token: json['token'] as String? ?? '',
+        dtts: json['dtts'] as String? ?? '',
         profile: json['profile'] as String? ?? json['database'] as String? ?? 'default',
         active: json['active'] as bool? ?? true,
       );
