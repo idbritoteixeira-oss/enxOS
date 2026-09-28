@@ -21,19 +21,13 @@ void startCallback() {
 
 class EnXTaskHandler extends TaskHandler {
   @override
-  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {}
+  Future<void> onStart(DateTime timestamp, SendPort? sendPort) async {}
 
   @override
-  void onRepeatEvent(DateTime timestamp) {}
+  void onRepeatEvent(DateTime timestamp, SendPort? sendPort) {}
 
   @override
-  Future<void> onDestroy(DateTime timestamp) async {}
-
-  @override
-  void onNotificationButtonPressed(String id) {}
-
-  @override
-  void onNotificationDismissed() {}
+  Future<void> onDestroy(DateTime timestamp, SendPort? sendPort) async {}
 
   @override
   void onNotificationPressed() => FlutterForegroundTask.launchApp();
