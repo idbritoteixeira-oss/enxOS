@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:cron/cron.dart';
-
 import 'package:enxcci/config/enxcci_config.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
 import 'package:enxcci/jobs/script_registry.dart';
@@ -21,8 +19,8 @@ class JobScheduler {
   List<EnXcciConfig> connections;
   final SchedulerLog? onLog;
   final JobUpdate? onJobUpdate;
-  Cron _cron = Cron();
-  final Set<String> _scheduled = {};
+
+  final Map<String, Timer> _timers = {};
   final Map<String, DateTime> _lastRunAt = {};
   final Set<String> _inFlight = {};
   bool _running = false;
@@ -35,16 +33,40 @@ class JobScheduler {
 
   Future<void> start(List<EnXJob> jobs) async {
     await stop();
-    _cron = Cron();
     _running = true;
     for (final job in jobs.where((j) => j.active)) {
       _schedule(job);
     }
-    onLog?.call('INFO', '${_scheduled.length} jobs ativos iniciados');
+    onLog?.call('INFO', '${_timers.length} jobs ativos iniciados');
   }
 
-void _schedule(EnXJob job) {
-  _cron.schedule(Schedule.parse('* * * * * 0'), () async {
+  void _schedule(EnXJob job) {
+    // Cancela timer anterior se existir
+    _timers[job.id]?.cancel();
+
+    // Calcula quantos ms faltam para o próximo segundo 00
+    final now = DateTime.now();
+    final nextMinute = DateTime(
+      now.year, now.month, now.day,
+      now.hour, now.minute + 1, 0, 0, 0,
+    );
+    final delay = nextMinute.difference(now);
+
+    // Aguarda até o segundo 00 e então dispara em loop pelo intervalSeconds
+    _timers[job.id] = Timer(delay, () {
+      _fireJob(job);
+      // Após o primeiro disparo no segundo 00, repete pelo intervalo configurado
+      _timers[job.id] = Timer.periodic(
+        Duration(seconds: job.intervalSeconds),
+        (_) => _fireJob(job),
+      );
+    });
+
+    onJobUpdate?.call(job.copyWith(nextRun: nextMinute));
+    onLog?.call('INFO', 'jobs iniciados');
+  }
+
+  void _fireJob(EnXJob job) {
     if (_inFlight.contains(job.id)) return;
     final now = DateTime.now();
     final lastRun = _lastRunAt[job.id];
@@ -54,22 +76,8 @@ void _schedule(EnXJob job) {
     }
     _lastRunAt[job.id] = now;
     _inFlight.add(job.id);
-    try {
-      await _run(job);
-    } finally {
-      _inFlight.remove(job.id);
-    }
-  });
-  _scheduled.add(job.id);
-  onJobUpdate?.call(job.copyWith(
-    nextRun: _nextWholeMinute(),
-  ));
-}
-
-DateTime _nextWholeMinute() {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day, now.hour, now.minute + 1, 0);
-}
+    _run(job).whenComplete(() => _inFlight.remove(job.id));
+  }
 
   Future<void> _run(EnXJob job) async {
     final script = ScriptRegistry.get(job.scriptId);
@@ -109,14 +117,14 @@ DateTime _nextWholeMinute() {
   Future<void> runNow(EnXJob job) => _run(job);
 
   Future<void> stop() async {
-    await _cron.close();
-    _scheduled.clear();
+    for (final timer in _timers.values) {
+      timer.cancel();
+    }
+    _timers.clear();
     _lastRunAt.clear();
     _inFlight.clear();
     _running = false;
   }
 
-  Future<void> dispose() async {
-    await stop();
-  }
+  Future<void> dispose() async => stop();
 }
