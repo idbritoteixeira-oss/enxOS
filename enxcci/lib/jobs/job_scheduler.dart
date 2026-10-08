@@ -43,28 +43,33 @@ class JobScheduler {
     onLog?.call('INFO', '${_scheduled.length} jobs ativos iniciados');
   }
 
-  void _schedule(EnXJob job) {
-    _cron.schedule(Schedule.parse('* * * * * *'), () async {
-      if (_inFlight.contains(job.id)) return;
-      final now = DateTime.now();
-      final lastRun = _lastRunAt[job.id];
-      if (lastRun != null &&
-          now.difference(lastRun).inSeconds < job.intervalSeconds) {
-        return;
-      }
-      _lastRunAt[job.id] = now;
-      _inFlight.add(job.id);
-      try {
-        await _run(job);
-      } finally {
-        _inFlight.remove(job.id);
-      }
-    });
-    _scheduled.add(job.id);
-    onJobUpdate?.call(job.copyWith(
-      nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
-    ));
-  }
+void _schedule(EnXJob job) {
+  _cron.schedule(Schedule.parse('* * * * * 0'), () async {
+    if (_inFlight.contains(job.id)) return;
+    final now = DateTime.now();
+    final lastRun = _lastRunAt[job.id];
+    if (lastRun != null &&
+        now.difference(lastRun).inSeconds < job.intervalSeconds) {
+      return;
+    }
+    _lastRunAt[job.id] = now;
+    _inFlight.add(job.id);
+    try {
+      await _run(job);
+    } finally {
+      _inFlight.remove(job.id);
+    }
+  });
+  _scheduled.add(job.id);
+  onJobUpdate?.call(job.copyWith(
+    nextRun: _nextWholeMinute(),
+  ));
+}
+
+DateTime _nextWholeMinute() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day, now.hour, now.minute + 1, 0);
+}
 
   Future<void> _run(EnXJob job) async {
     final script = ScriptRegistry.get(job.scriptId);
