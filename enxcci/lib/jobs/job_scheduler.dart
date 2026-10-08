@@ -45,14 +45,20 @@ class JobScheduler {
 
     final now = DateTime.now();
     final secondsPassedInHour = now.minute * 60 + now.second;
-    final nextIntervalSeconds =
-        ((secondsPassedInHour ~/ job.intervalSeconds) + 1) *
-            job.intervalSeconds;
+    
+    // Calcula o próximo múltiplo exato do intervalo
+    int nextIntervalSeconds = ((secondsPassedInHour ~/ job.intervalSeconds) + 1) * job.intervalSeconds;
 
-    final nextRun = DateTime(
+    var nextRun = DateTime(
       now.year, now.month, now.day,
       now.hour, 0, 0, 0, 0,
     ).add(Duration(seconds: nextIntervalSeconds));
+
+    // Se o timer estiver adiantado por milissegundos (diferença muito pequena), 
+    // ou seja, caiu muito em cima da hora exata, pulamos para a próxima janela.
+    if (nextRun.difference(now).inMilliseconds < 100) {
+      nextRun = nextRun.add(Duration(seconds: job.intervalSeconds));
+    }
 
     final delay = nextRun.difference(now);
 
@@ -66,12 +72,19 @@ class JobScheduler {
 
   void _fireJob(EnXJob job) {
     if (_inFlight.contains(job.id)) return;
+    
     final now = DateTime.now();
     final lastRun = _lastRunAt[job.id];
-    if (lastRun != null &&
-        now.difference(lastRun).inSeconds < job.intervalSeconds) {
-      return;
+    
+    // CORREÇÃO: Usamos milissegundos com uma margem de segurança de 500ms.
+    // Isso evita que um disparo aos 59.99s seja ignorado pelo truncamento do .inSeconds.
+    if (lastRun != null) {
+      final safeIntervalMs = (job.intervalSeconds * 1000) - 500;
+      if (now.difference(lastRun).inMilliseconds < safeIntervalMs) {
+        return;
+      }
     }
+    
     _lastRunAt[job.id] = now;
     _inFlight.add(job.id);
     _run(job).whenComplete(() => _inFlight.remove(job.id));
