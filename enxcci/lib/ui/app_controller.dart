@@ -4,6 +4,7 @@ import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -97,23 +98,23 @@ class AppController extends ChangeNotifier {
     return controller;
   }
 
-  Future<void> initialize() async {
-    connections = repository.loadConnections();
-    jobs = repository.loadJobs();
-    scheduler.updateConnections(connections);
-    addLog('INFO', 'EnXcci iniciando');
+Future<void> initialize() async {
+  connections = repository.loadConnections();
+  jobs = repository.loadJobs();
+  scheduler.updateConnections(connections);
+  addLog('INFO', 'EnXcci iniciando');
 
-    // Inicia o processo persistente em segundo plano
-    await _startForegroundService();
+  await WakelockPlus.enable();
+  await _startForegroundService();
 
-    dataniverse.startRetryLoop();
-    await refreshDataniverseStatus();
-    await scheduler.start(jobs);
-    _healthTimer = Timer.periodic(const Duration(seconds: 30), (_) => healthWatchdog());
-    _dataniverseTimer = Timer.periodic(const Duration(seconds: 5), (_) => refreshDataniverseStatus());
-    initialized = true;
-    notifyListeners();
-  }
+  dataniverse.startRetryLoop();
+  await refreshDataniverseStatus();
+  await scheduler.start(jobs);
+  _healthTimer = Timer.periodic(const Duration(seconds: 30), (_) => healthWatchdog());
+  _dataniverseTimer = Timer.periodic(const Duration(seconds: 5), (_) => refreshDataniverseStatus());
+  initialized = true;
+  notifyListeners();
+}
 
   Future<void> _startForegroundService() async {
     if (await FlutterForegroundTask.isRunningService) return;
@@ -235,14 +236,15 @@ class AppController extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
-    _healthTimer?.cancel();
-    _dataniverseTimer?.cancel();
-    scheduler.dispose();
-    dataniverse.dispose();
-    FlutterForegroundTask.stopService();
-    super.dispose();
-  }
+void dispose() {
+  _healthTimer?.cancel();
+  _dataniverseTimer?.cancel();
+  scheduler.dispose();
+  dataniverse.dispose();
+  WakelockPlus.disable();
+  FlutterForegroundTask.stopService();
+  super.dispose();
+}
 
   EnXcciConfig newConnection() => EnXcciConfig(
         id: const Uuid().v4(),
