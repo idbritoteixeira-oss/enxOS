@@ -35,35 +35,33 @@ class JobScheduler {
     await stop();
     _running = true;
     for (final job in jobs.where((j) => j.active)) {
-      _schedule(job);
+      _scheduleNextRun(job);
     }
-    onLog?.call('INFO', '${_timers.length} jobs ativos iniciados');
+    onLog?.call('INFO', '${_timers.length} active jobs started');
   }
 
-  void _schedule(EnXJob job) {
-    // Cancela timer anterior se existir
+  void _scheduleNextRun(EnXJob job) {
     _timers[job.id]?.cancel();
 
-    // Calcula quantos ms faltam para o próximo segundo 00
     final now = DateTime.now();
-    final nextMinute = DateTime(
-      now.year, now.month, now.day,
-      now.hour, now.minute + 1, 0, 0, 0,
-    );
-    final delay = nextMinute.difference(now);
+    final secondsPassedInHour = now.minute * 60 + now.second;
+    final nextIntervalSeconds =
+        ((secondsPassedInHour ~/ job.intervalSeconds) + 1) *
+            job.intervalSeconds;
 
-    // Aguarda até o segundo 00 e então dispara em loop pelo intervalSeconds
+    final nextRun = DateTime(
+      now.year, now.month, now.day,
+      now.hour, 0, 0, 0, 0,
+    ).add(Duration(seconds: nextIntervalSeconds));
+
+    final delay = nextRun.difference(now);
+
     _timers[job.id] = Timer(delay, () {
       _fireJob(job);
-      // Após o primeiro disparo no segundo 00, repete pelo intervalo configurado
-      _timers[job.id] = Timer.periodic(
-        Duration(seconds: job.intervalSeconds),
-        (_) => _fireJob(job),
-      );
+      _scheduleNextRun(job);
     });
 
-    onJobUpdate?.call(job.copyWith(nextRun: nextMinute));
-    onLog?.call('INFO', 'jobs iniciados');
+    onJobUpdate?.call(job.copyWith(nextRun: nextRun));
   }
 
   void _fireJob(EnXJob job) {
@@ -82,9 +80,9 @@ class JobScheduler {
   Future<void> _run(EnXJob job) async {
     final script = ScriptRegistry.get(job.scriptId);
     if (script == null) {
-      onLog?.call('ERROR', '${job.label}: script "${job.scriptId}" não registrado');
+      onLog?.call('ERROR', '${job.label}: script "${job.scriptId}" not registered');
       onJobUpdate?.call(job.copyWith(
-        lastResult: 'Erro: script não encontrado',
+        lastResult: 'Error: script not found',
         lastRun: DateTime.now(),
         nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
       ));
@@ -92,7 +90,7 @@ class JobScheduler {
     }
     final pool = {for (final c in connections) c.id: c};
     try {
-      onLog?.call('INFO', '${job.label}: executando script "${script.label}"');
+      onLog?.call('INFO', '${job.label}: running script "${script.label}"');
       await script.run(
         connections: pool,
         dataniverse: engine.dataniverse,
@@ -100,14 +98,14 @@ class JobScheduler {
         log: onLog ?? (_, __) {},
       );
       onJobUpdate?.call(job.copyWith(
-        lastResult: 'Script executado com sucesso',
+        lastResult: 'Script executed successfully',
         lastRun: DateTime.now(),
         nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
       ));
     } catch (error) {
       onLog?.call('ERROR', '${job.label}: $error');
       onJobUpdate?.call(job.copyWith(
-        lastResult: 'Erro: $error',
+        lastResult: 'Error: $error',
         lastRun: DateTime.now(),
         nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
       ));
