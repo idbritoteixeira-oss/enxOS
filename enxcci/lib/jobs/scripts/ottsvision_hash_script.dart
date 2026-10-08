@@ -9,7 +9,7 @@ class OttsVisionHashScript extends EnXScript {
   String get id => 'ottsvision_hash';
 
   @override
-  String get label => 'OttsVision — Hash & seeds';
+  String get label => 'B`reishit';
 
   @override
   Future<void> run({
@@ -20,7 +20,7 @@ class OttsVisionHashScript extends EnXScript {
   }) async {
     final activeConnections = connections.values.where((connection) => connection.active).toList();
     if (activeConnections.isEmpty) {
-      log('ERROR', 'OttsVision: nenhuma conexão externa ativa para gravar o DTTS');
+      log('ERROR', 'OttsVision: no active external connection to record the DTTS');
       return;
     }
 
@@ -108,10 +108,10 @@ class OttsVisionHashScript extends EnXScript {
 
       log(
         'SUCCESS',
-        'OttsVision: hash e DTTS consolidados no Dataniverse e MySQL — ${criptoFinal.substring(0, 16)}...',
+        'OttsVision: hash and DTTS consolidated in Dataniverse and MySQL — ${criptoFinal.substring(0, 16)}...',
       );
     } catch (e) {
-      log('ERROR', 'OttsVision falhou na rotação de chaves: $e');
+      log('ERROR', 'OttsVision failed to rotate the keys: $e');
     } finally {
       api.dispose();
     }
