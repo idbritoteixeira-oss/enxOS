@@ -27,7 +27,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "enxcci/assets/logo.jpg" # Altere para o caminho exato onde está o seu PNG
+  image_path: "assets/logo.jpg" # Altere para o caminho exato onde está o seu PNG
   min_sdk_android: 21
 
 flutter:
