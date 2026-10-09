@@ -10,3 +10,4 @@ env = { "CI" = "true" }
 
 [nix]
 channel = "stable-25_05"
+packages = ["flutter329"]

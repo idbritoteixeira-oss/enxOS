@@ -19,6 +19,8 @@ jobs:
       - name: Generate Android platform files
         run: flutter create --platforms=android --project-name enxcci .
       - run: flutter pub get
+      - name: Generate App Icons
+        run: dart run flutter_launcher_icons
       - run: flutter analyze
       - run: flutter test
       - run: flutter build apk --release
@@ -26,3 +28,4 @@ jobs:
         with:
           name: release-apk
           path: enxcci/build/app/outputs/flutter-apk/app-release.apk
+          
