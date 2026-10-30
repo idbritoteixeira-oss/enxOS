@@ -21,19 +21,40 @@ jobs:
       - run: flutter pub get
       - name: Align flutter_js Kotlin target with Java 11
         run: |
-          cat >> android/build.gradle <<'EOF'
-          subprojects { pluginProject ->
-              if (pluginProject.name == "flutter_js") {
-                  pluginProject.afterEvaluate {
-                      pluginProject.tasks.matching { task ->
-                          task.name.endsWith("Kotlin")
-                      }.configureEach { task ->
-                          task.kotlinOptions.jvmTarget = "11"
-                      }
-                  }
-              }
-          }
-          EOF
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from urllib.parse import unquote, urlparse
+
+          package_config = Path(".dart_tool/package_config.json").resolve()
+          packages = json.loads(package_config.read_text())["packages"]
+          package = next((item for item in packages if item["name"] == "flutter_js"), None)
+          if package is None:
+              raise SystemExit("flutter_js was not found in package_config.json")
+
+          root_uri = package["rootUri"]
+          parsed_uri = urlparse(root_uri)
+          if parsed_uri.scheme == "file":
+              package_root = Path(unquote(parsed_uri.path))
+          else:
+              package_root = (package_config.parent / root_uri).resolve()
+
+          gradle_file = package_root / "android" / "build.gradle"
+          if not gradle_file.is_file():
+              raise SystemExit(f"flutter_js Gradle file not found: {gradle_file}")
+
+          source = gradle_file.read_text()
+          old_target = "jvmTarget = JavaVersion.VERSION_1_8.toString()"
+          new_target = "jvmTarget = JavaVersion.VERSION_11.toString()"
+          if old_target in source:
+              if source.count(old_target) != 1:
+                  raise SystemExit("Unexpected flutter_js JVM target configuration")
+              gradle_file.write_text(source.replace(old_target, new_target, 1))
+          elif new_target not in source:
+              raise SystemExit("Could not find the flutter_js Kotlin JVM target to align")
+
+          print(f"flutter_js Kotlin JVM target set to 11: {gradle_file}")
+          PY
       - name: Generate App Icons
         run: dart run flutter_launcher_icons
       - run: flutter analyze
