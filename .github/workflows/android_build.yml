@@ -19,6 +19,21 @@ jobs:
       - name: Generate Android platform files
         run: flutter create --platforms=android --project-name enxcci .
       - run: flutter pub get
+      - name: Align flutter_js Kotlin target with Java 11
+        run: |
+          cat >> android/build.gradle <<'EOF'
+          subprojects { pluginProject ->
+              if (pluginProject.name == "flutter_js") {
+                  pluginProject.afterEvaluate {
+                      pluginProject.tasks.matching { task ->
+                          task.name.endsWith("Kotlin")
+                      }.configureEach { task ->
+                          task.kotlinOptions.jvmTarget = "11"
+                      }
+                  }
+              }
+          }
+          EOF
       - name: Generate App Icons
         run: dart run flutter_launcher_icons
       - run: flutter analyze
