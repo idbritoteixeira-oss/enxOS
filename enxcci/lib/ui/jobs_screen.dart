@@ -132,7 +132,7 @@ Future<void> _showJobEditor(
               _field(label, 'Nome do job'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: scriptId == ScriptRegistry.customJavaScriptId ||
+                initialValue: scriptId == ScriptRegistry.customJavaScriptId ||
                         ScriptRegistry.getAll().any((s) => s.id == scriptId)
                     ? scriptId
                     : null,
