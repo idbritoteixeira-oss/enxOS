@@ -65,6 +65,8 @@ class EnXJob {
     required this.label,
     required this.scriptId,
     required this.targetTable,
+    this.code = '',
+    this.state = const {},
     this.seedShard,
     required this.intervalSeconds,
     this.active = true,
@@ -77,6 +79,8 @@ class EnXJob {
   final String label;
   final String scriptId;
   final String targetTable;
+  final String code;
+  final Map<String, dynamic> state;
   final String? seedShard;
   final int intervalSeconds;
   final bool active;
@@ -89,6 +93,8 @@ EnXJob copyWith({
   String? label,
   String? scriptId,
   String? targetTable,
+  String? code,
+  Map<String, dynamic>? state,
   String? seedShard,
   int? intervalSeconds,
   bool? active,
@@ -100,6 +106,8 @@ EnXJob copyWith({
   label: label ?? this.label,
   scriptId: scriptId ?? this.scriptId,
   targetTable: targetTable ?? this.targetTable,
+  code: code ?? this.code,
+  state: state ?? this.state,
   seedShard: seedShard ?? this.seedShard,
   intervalSeconds: intervalSeconds ?? this.intervalSeconds,
   active: active ?? this.active,
@@ -113,6 +121,8 @@ Map<String, dynamic> toJson() => {
     'label': label,
     'scriptId': scriptId,
     'targetTable': targetTable,
+    'code': code,
+    'state': state,
     'seedShard': seedShard,
     'intervalSeconds': intervalSeconds,
     'active': active,
@@ -126,6 +136,10 @@ Map<String, dynamic> toJson() => {
     label: json['label'] as String? ?? 'Novo job',
     scriptId: json['scriptId'] as String? ?? '',
     targetTable: json['targetTable'] as String? ?? 'ottschain',
+    code: json['code'] as String? ?? '',
+    state: json['state'] is Map
+        ? Map<String, dynamic>.from(json['state'] as Map)
+        : <String, dynamic>{},
     seedShard: json['seedShard'] as String?,
     intervalSeconds: (json['intervalSeconds'] as num?)?.toInt() ?? 60,
     active: json['active'] as bool? ?? true,

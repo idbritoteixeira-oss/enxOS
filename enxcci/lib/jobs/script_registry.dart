@@ -4,6 +4,9 @@ import 'package:enxcci/jobs/scripts/ottsvision_hash_script.dart';
 import 'package:enxcci/jobs/scripts/otts_seed_script.dart';
 
 class ScriptRegistry {
+  static const customJavaScriptId = 'custom_js';
+  static const customJavaScriptLabel = 'Código personalizado (JS)';
+
   static final Map<String, EnXScript> _scripts = {
 'otts_seed': OttsSeedScript(),
     GenericScript().id: GenericScript(),

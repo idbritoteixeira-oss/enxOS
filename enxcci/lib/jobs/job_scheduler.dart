@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:enxcci/config/enxcci_config.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
+import 'package:enxcci/jobs/custom_js_engine.dart';
 import 'package:enxcci/jobs/script_registry.dart';
 
 typedef SchedulerLog = void Function(String level, String message);
@@ -22,7 +23,9 @@ class JobScheduler {
 
   final Map<String, Timer> _timers = {};
   final Map<String, DateTime> _lastRunAt = {};
+  final Map<String, EnXJob> _jobsById = {};
   final Set<String> _inFlight = {};
+  final CustomJsEngine _customJsEngine = CustomJsEngine();
   bool _running = false;
 
   bool get isRunning => _running;
@@ -33,6 +36,7 @@ class JobScheduler {
 
   Future<void> start(List<EnXJob> jobs) async {
     await stop();
+    _jobsById.addEntries(jobs.map((job) => MapEntry(job.id, job)));
     _running = true;
     for (final job in jobs.where((j) => j.active)) {
       _scheduleNextRun(job);
@@ -63,11 +67,17 @@ class JobScheduler {
     final delay = nextRun.difference(now);
 
     _timers[job.id] = Timer(delay, () {
-      _fireJob(job);
-      _scheduleNextRun(job);
+      final latestJob = _jobsById[job.id] ?? job;
+      _fireJob(latestJob);
+      _scheduleNextRun(_jobsById[job.id] ?? latestJob);
     });
 
-    onJobUpdate?.call(job.copyWith(nextRun: nextRun));
+    _publishJobUpdate(job.copyWith(nextRun: nextRun));
+  }
+
+  void _publishJobUpdate(EnXJob job) {
+    _jobsById[job.id] = job;
+    onJobUpdate?.call(job);
   }
 
   void _fireJob(EnXJob job) {
@@ -91,10 +101,37 @@ class JobScheduler {
   }
 
   Future<void> _run(EnXJob job) async {
+    if (job.scriptId == ScriptRegistry.customJavaScriptId) {
+      try {
+        onLog?.call('INFO', '${job.label}: running custom JavaScript');
+        final result = await _customJsEngine.execute(
+          code: job.code,
+          state: job.state,
+        );
+        for (final message in result.logs) {
+          onLog?.call('INFO', '${job.label}: $message');
+        }
+        _publishJobUpdate(job.copyWith(
+          lastResult: result.ok ? result.message : 'Error: ${result.message}',
+          state: result.state,
+          lastRun: DateTime.now(),
+          nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
+        ));
+      } catch (error) {
+        onLog?.call('ERROR', '${job.label}: $error');
+        _publishJobUpdate(job.copyWith(
+          lastResult: 'Error: $error',
+          lastRun: DateTime.now(),
+          nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
+        ));
+      }
+      return;
+    }
+
     final script = ScriptRegistry.get(job.scriptId);
     if (script == null) {
       onLog?.call('ERROR', '${job.label}: script "${job.scriptId}" not registered');
-      onJobUpdate?.call(job.copyWith(
+      _publishJobUpdate(job.copyWith(
         lastResult: 'Error: script not found',
         lastRun: DateTime.now(),
         nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
@@ -110,14 +147,14 @@ class JobScheduler {
         engine: engine,
         log: onLog ?? (_, __) {},
       );
-      onJobUpdate?.call(job.copyWith(
+      _publishJobUpdate(job.copyWith(
         lastResult: 'Script executed successfully',
         lastRun: DateTime.now(),
         nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
       ));
     } catch (error) {
       onLog?.call('ERROR', '${job.label}: $error');
-      onJobUpdate?.call(job.copyWith(
+      _publishJobUpdate(job.copyWith(
         lastResult: 'Error: $error',
         lastRun: DateTime.now(),
         nextRun: DateTime.now().add(Duration(seconds: job.intervalSeconds)),
@@ -125,7 +162,16 @@ class JobScheduler {
     }
   }
 
-  Future<void> runNow(EnXJob job) => _run(job);
+  Future<void> runNow(EnXJob job) async {
+    if (_inFlight.contains(job.id)) return;
+    _jobsById[job.id] = job;
+    _inFlight.add(job.id);
+    try {
+      await _run(job);
+    } finally {
+      _inFlight.remove(job.id);
+    }
+  }
 
   Future<void> stop() async {
     for (final timer in _timers.values) {
@@ -133,6 +179,7 @@ class JobScheduler {
     }
     _timers.clear();
     _lastRunAt.clear();
+    _jobsById.clear();
     _inFlight.clear();
     _running = false;
   }

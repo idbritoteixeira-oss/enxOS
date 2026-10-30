@@ -46,6 +46,9 @@ class _JobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final script = ScriptRegistry.get(job.scriptId);
+    final scriptLabel = job.scriptId == ScriptRegistry.customJavaScriptId
+        ? ScriptRegistry.customJavaScriptLabel
+        : script?.label ?? job.scriptId;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -75,16 +78,21 @@ class _JobCard extends StatelessWidget {
             ),
           ]),
           Text(
-            'Script: ${script?.label ?? job.scriptId} · A cada ${job.intervalSeconds}s · ${job.targetTable}',
+            job.scriptId == ScriptRegistry.customJavaScriptId
+                ? 'Script: $scriptLabel · A cada ${job.intervalSeconds}s'
+                : 'Script: $scriptLabel · A cada ${job.intervalSeconds}s · ${job.targetTable}',
             style: const TextStyle(color: Colors.white60),
           ),
           const SizedBox(height: 10),
           Text(
             job.lastResult ?? 'Ainda não executado',
             style: TextStyle(
-                color: job.lastResult == null
-                    ? Colors.white54
-                    : const Color(0xFF41D5C3)),
+              color: job.lastResult == null
+                  ? Colors.white54
+                  : job.lastResult!.startsWith('Error:')
+                      ? const Color(0xFFFF6B7A)
+                      : const Color(0xFF41D5C3),
+            ),
           ),
           const SizedBox(height: 5),
           Text(
@@ -106,6 +114,7 @@ Future<void> _showJobEditor(
   final shard = TextEditingController(text: initial.seedShard ?? '');
   final interval =
       TextEditingController(text: '${initial.intervalSeconds}');
+  final code = TextEditingController(text: initial.code);
   var scriptId = initial.scriptId.isNotEmpty
       ? initial.scriptId
       : ScriptRegistry.getAll().first.id;
@@ -123,23 +132,52 @@ Future<void> _showJobEditor(
               _field(label, 'Nome do job'),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                initialValue: ScriptRegistry.getAll().any((s) => s.id == scriptId)
+                value: scriptId == ScriptRegistry.customJavaScriptId ||
+                        ScriptRegistry.getAll().any((s) => s.id == scriptId)
                     ? scriptId
                     : null,
                 decoration: const InputDecoration(labelText: 'Script'),
-                items: ScriptRegistry.getAll()
-                    .map((s) => DropdownMenuItem(
-                          value: s.id,
-                          child: Text(s.label),
-                        ))
-                    .toList(),
+                items: [
+                  ...ScriptRegistry.getAll().map((s) => DropdownMenuItem(
+                        value: s.id,
+                        child: Text(s.label),
+                      )),
+                  const DropdownMenuItem(
+                    value: ScriptRegistry.customJavaScriptId,
+                    child: Text(ScriptRegistry.customJavaScriptLabel),
+                  ),
+                ],
                 onChanged: (value) =>
                     setState(() => scriptId = value ?? ''),
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Obrigatório' : null,
               ),
-              _field(target, 'Tabela Dataniverse'),
-              _field(shard, 'Seed Shard (opcional)', required: false),
+              if (scriptId == ScriptRegistry.customJavaScriptId) ...[
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: code,
+                  minLines: 8,
+                  maxLines: 14,
+                  keyboardType: TextInputType.multiline,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Código JavaScript',
+                    alignLabelWithHint: true,
+                    helperText:
+                        'Disponíveis: log(...), await http(method, url, body?, headers?), state e return "mensagem".',
+                  ),
+                  validator: (value) =>
+                      value == null || value.trim().isEmpty
+                          ? 'Cole o código do job'
+                          : null,
+                ),
+              ] else ...[
+                _field(target, 'Tabela Dataniverse'),
+                _field(shard, 'Seed Shard (opcional)', required: false),
+              ],
               _field(interval, 'Intervalo (segundos)',
                   keyboard: TextInputType.number),
             ]),
@@ -155,6 +193,7 @@ Future<void> _showJobEditor(
               await controller.upsertJob(initial.copyWith(
                 label: label.text.trim(),
                 scriptId: scriptId,
+                code: code.text,
                 targetTable: target.text.trim(),
                 seedShard: shard.text.trim().isEmpty ? null : shard.text.trim(),
                 intervalSeconds: int.tryParse(interval.text) ?? 60,

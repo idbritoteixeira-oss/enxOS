@@ -110,7 +110,10 @@ Future<void> initialize() async {
   dataniverse.startRetryLoop();
   await refreshDataniverseStatus();
   await scheduler.start(jobs);
-  _healthTimer = Timer.periodic(const Duration(seconds: 30), (_) => healthWatchdog());
+  _healthTimer = Timer.periodic(
+    const Duration(seconds: 300),
+    (_) => healthWatchdog(),
+  );
   _dataniverseTimer = Timer.periodic(const Duration(seconds: 5), (_) => refreshDataniverseStatus());
   initialized = true;
   notifyListeners();
