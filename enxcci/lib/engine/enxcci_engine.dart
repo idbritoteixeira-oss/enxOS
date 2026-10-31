@@ -33,7 +33,30 @@ class OttsVision {
 
   static bool isExpired(DateTime createdAt) =>
       DateTime.now().difference(createdAt).inSeconds > 60;
-  
+
+  static Map<String, dynamic>? latestDttsRecord(List<dynamic> records) {
+    Map<String, dynamic>? latest;
+    DateTime? latestCreatedAt;
+
+    for (final record in records) {
+      if (record is! Map) continue;
+
+      final dtts = record['dtts']?.toString().trim() ?? '';
+      final createdAt = DateTime.tryParse(
+        record['created_at']?.toString() ?? '',
+      );
+      if (dtts.isEmpty || createdAt == null) continue;
+
+      // LIST_RECORDS não garante ordem; use o timestamp persistido no registro.
+      if (latestCreatedAt == null || createdAt.isAfter(latestCreatedAt)) {
+        latest = Map<String, dynamic>.from(record);
+        latestCreatedAt = createdAt;
+      }
+    }
+
+    return latest;
+  }
+
   static Future<String?> currentDtts(DataniverseClient dataniverse) async {
     try {
       final result = await dataniverse.command({
@@ -43,9 +66,7 @@ class OttsVision {
       final data = result['data'];
       if (data is! List || data.isEmpty) return null;
 
-      // Pega o mais recente (último inserido)
-      final last = data.last;
-      return last['dtts']?.toString();
+      return latestDttsRecord(data)?['dtts']?.toString();
     } catch (_) {
       return null;
     }

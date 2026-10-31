@@ -17,6 +17,23 @@ void main() {
     );
   });
 
+  test('OttsVision escolhe o DTTS mais novo sem depender da ordem da lista', () {
+    final latest = OttsVision.latestDttsRecord([
+      {'dtts': 'token-novo', 'created_at': '2026-10-31T12:02:00Z'},
+      {'dtts': 'token-antigo', 'created_at': '2026-10-31T12:01:00Z'},
+    ]);
+
+    expect(latest?['dtts'], 'token-novo');
+  });
+
+  test('OttsVision ignora registros DTTS sem timestamp confiável', () {
+    final latest = OttsVision.latestDttsRecord([
+      {'dtts': 'token-sem-data'},
+    ]);
+
+    expect(latest, isNull);
+  });
+
   test('EnXCrypt cifra e decifra o conteúdo', () {
     const content = 'registro enxOS';
     final encrypted = EnXCrypt.enXCrypt(content, BigInt.from(12345678));

@@ -48,10 +48,20 @@ class ActionHashScript extends EnXScript {
 
       final dttsData = dttsRecords['data'];
       if (dttsData is List && dttsData.isNotEmpty) {
-        final last = dttsData.last;
-        final createdAt = DateTime.tryParse(last['created_at'] ?? '');
+        final latest = OttsVision.latestDttsRecord(dttsData);
+        final createdAt = DateTime.tryParse(
+          latest?['created_at']?.toString() ?? '',
+        );
         if (createdAt != null && OttsVision.isExpired(createdAt)) {
           log('ERROR', 'ActionHash: DTTS expirado (>60s) → Acesso negado');
+          return;
+        }
+        if (latest == null) {
+          log(
+            'ERROR',
+            'ActionHash: não foi possível determinar o DTTS mais recente '
+                'por falta de created_at',
+          );
           return;
         }
       }
