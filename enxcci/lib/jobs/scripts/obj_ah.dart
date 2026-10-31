@@ -63,14 +63,14 @@ class ActionHashScript extends EnXScript {
       // 1. Varre a tabela actionhash no MySQL/cache
       // =========================================================
       final result = await api.query(
-        "SELECT * FROM actionhash WHERE executes IN ('obj','use','transation','burn')",
-        dtts: currentDtts, // envia o DTTS junto (mesmo padrão do backend)
-      );
+  "SELECT * FROM actionhash WHERE executes IN ('obj','use','transation','burn')",
+  dtts: currentDtts,
+);
 
-      if (result is! List || result.isEmpty) {
-        log('INFO', 'ActionHash: nenhum registro pendente de finalização');
-        return;
-      }
+    if (result.isEmpty) {
+      log('INFO', 'ActionHash: nenhum registro pendente de finalização');
+      return;
+    }
 
       for (final row in result) {
         final executes = (row['executes'] ?? 'none').toString().toLowerCase();
@@ -182,7 +182,7 @@ class ActionHashScript extends EnXScript {
     });
 
     await api.query(
-      "UPDATE actionhash SET "
+      'UPDATE actionhash SET'
       "idaction = '$idaction', "
       "executes = 'none', "
       "used = 'false' "
