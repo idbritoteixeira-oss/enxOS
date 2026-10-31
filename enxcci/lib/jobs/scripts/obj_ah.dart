@@ -2,8 +2,6 @@ import 'package:enxcci/config/enxcci_config.dart';
 import 'package:enxcci/dataniverse/dataniverse_client.dart';
 import 'package:enxcci/database/enx_api_provider.dart';
 import 'package:enxcci/engine/enxcci_engine.dart';
-import 'package:enxcci/engine/modules/enx_crypt.dart';
-import 'package:enxcci/engine/modules/enx_math.dart';
 import 'package:enxcci/jobs/job_script.dart';
 
 class ActionHashScript extends EnXScript {
