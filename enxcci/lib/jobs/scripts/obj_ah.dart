@@ -32,7 +32,13 @@ class ActionHashScript extends EnXScript {
 
     try {
       // =========================================================
-      // TRAVA DE SEGURANÇA DTTS (obrigatória)
+      // DELAY OBRIGATÓRIO
+      // Espera o Job OttsVision terminar de rotacionar o DTTS
+      // =========================================================
+      await Future.delayed(const Duration(seconds: 3));
+
+      // =========================================================
+      // TRAVA DE SEGURANÇA DTTS
       // =========================================================
       final currentDtts = await OttsVision.currentDtts(dataniverse);
 
@@ -41,7 +47,7 @@ class ActionHashScript extends EnXScript {
         return;
       }
 
-      // Busca o registro do DTTS para verificar expiração (60s)
+      // Verifica expiração (60s)
       final dttsRecords = await dataniverse.command({
         'action': 'LIST_RECORDS',
         'table': 'dtts',
@@ -63,14 +69,14 @@ class ActionHashScript extends EnXScript {
       // 1. Varre a tabela actionhash no MySQL/cache
       // =========================================================
       final result = await api.query(
-  "SELECT * FROM actionhash WHERE executes IN ('obj','use','transation','burn')",
-  dtts: currentDtts,
-);
+        "SELECT * FROM actionhash WHERE executes IN ('obj','use','transation','burn')",
+        dtts: currentDtts,
+      );
 
-    if (result.isEmpty) {
-      log('INFO', 'ActionHash: nenhum registro pendente de finalização');
-      return;
-    }
+      if (result is! List || result.isEmpty) {
+        log('INFO', 'ActionHash: nenhum registro pendente de finalização');
+        return;
+      }
 
       for (final row in result) {
         final executes = (row['executes'] ?? 'none').toString().toLowerCase();
@@ -175,20 +181,17 @@ class ActionHashScript extends EnXScript {
       'seed': seeds.first,
     };
 
+    // 1. Grava na Dataniverse (com hashprivate)
     await dataniverse.command({
       'action': 'INSERT',
       'table': 'actionhash',
       'data': data,
     });
 
-    await api.query(
-      'UPDATE actionhash SET'
-      "idaction = '$idaction', "
-      "executes = 'none', "
-      "used = 'false' "
-      "WHERE id = ${row['id']}",
-      dtts: currentDtts,
-    );
+    // 2. Atualiza o MySQL (SQL corrigido)
+    final updateSql = "UPDATE actionhash SET idaction = '$idaction', executes = 'none', used = 'false' WHERE id = ${row['id']}";
+    
+    await api.query(updateSql, dtts: currentDtts);
 
     log('SUCCESS', 'ActionHash CRIADO → idaction: $idaction');
   }
