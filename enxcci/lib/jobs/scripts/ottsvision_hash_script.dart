@@ -66,20 +66,40 @@ class OttsVisionHashScript extends EnXScript {
       final cripto = (hashBig + ultimos3).toString().padLeft(64, '0');
       final criptoFinal = cripto.substring(cripto.length - 64);
 
-      // ETAPA 4: grava o novo DTTS no Dataniverse PRIMEIRO
-      await dataniverse.command({
-        'action': 'INSERT',
-        'table': 'dtts',
-        'data': {
-          'dtts': dtts,
-        },
-      });
+    final dttsRecords = await dataniverse.command({
+      'action': 'LIST_RECORDS',
+      'table': 'dtts',
+    });
+
+    final dttsData = dttsRecords['data'];
+    if (dttsData is List) {
+      final cutoff = DateTime.now().subtract(const Duration(minutes: 12));
+      for (final record in dttsData) {
+        final createdAt = DateTime.tryParse(record['created_at'] ?? '');
+        if (createdAt != null && createdAt.isBefore(cutoff)) {
+          await dataniverse.command({
+            'action': 'DELETE',
+            'table': 'dtts',
+            'id': record['id'],
+          });
+        }
+      }
+    }
+
+    // Agora grava o novo DTTS
+    await dataniverse.command({
+      'action': 'INSERT',
+      'table': 'dtts',
+      'data': {
+        'dtts': dtts,
+      },
+    });
 
       // ETAPA 5: grava o hash e as oito seeds no Dataniverse
       final chain = OttsChain(
         idModulo: 'ottsvision',
         seed: seeds.first,
-        idPub: 'ottsvision-cron',
+        idPub: 'ottsvision',
         content: [criptoFinal],
       ).seal();
 
@@ -125,7 +145,7 @@ class OttsVisionHashScript extends EnXScript {
 
       log(
         'SUCCESS',
-        'OttsVision: hash and DTTS consolidated in Dataniverse and MySQL — ${criptoFinal.substring(0, 16)}...',
+        'OttsVision: hash and DTTS recorded in Dataniverse and Cache — ${criptoFinal.substring(0, 16)}',
       );
     } catch (e) {
       log('ERROR', 'OttsVision failed to rotate the keys: $e');
