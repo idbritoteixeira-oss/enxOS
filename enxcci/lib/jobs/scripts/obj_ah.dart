@@ -32,7 +32,13 @@ class ActionHashScript extends EnXScript {
 
     try {
       // =========================================================
-      // TRAVA DE SEGURANÇA DTTS
+      // DELAY OBRIGATÓRIO (3 segundos)
+      // Aguarda o OttsVision gerar e sincronizar o novo DTTS
+      // =========================================================
+      await Future.delayed(const Duration(seconds: 3));
+
+      // =========================================================
+      // TRAVA DE SEGURANÇA DTTS (com retry)
       // =========================================================
       final currentDtts = await _waitForValidDtts(
         api: api,
@@ -40,33 +46,7 @@ class ActionHashScript extends EnXScript {
         log: log,
       );
 
-      // Verifica expiração (60s)
-      final dttsRecords = await dataniverse.command({
-        'action': 'LIST_RECORDS',
-        'table': 'dtts',
-      });
-
-      final dttsData = dttsRecords['data'];
-      if (dttsData is List && dttsData.isNotEmpty) {
-        final latest = OttsVision.latestDttsRecord(dttsData);
-        final createdAt = DateTime.tryParse(
-          latest?['created_at']?.toString() ?? '',
-        );
-        if (createdAt != null && OttsVision.isExpired(createdAt)) {
-          log('ERROR', 'ActionHash: DTTS expirado (>60s) → Acesso negado');
-          return;
-        }
-        if (latest == null) {
-          log(
-            'ERROR',
-            'ActionHash: não foi possível determinar o DTTS mais recente '
-                'por falta de created_at',
-          );
-          return;
-        }
-      }
-
-      log('INFO', 'ActionHash: DTTS sincronizado com o MySQL');
+      log('INFO', 'ActionHash: DTTS sincronizado com o MySQL → $currentDtts');
 
       // =========================================================
       // 1. Varre a tabela actionhash no MySQL/cache
@@ -191,9 +171,9 @@ class ActionHashScript extends EnXScript {
       'data': data,
     });
 
-    // 2. Atualiza o MySQL (SQL corrigido)
-    final updateSql = "UPDATE actionhash SET idaction = '$idaction', executes = 'none', used = 'false' WHERE id = ${row['id']}";
-    
+    // 2. Atualiza o MySQL
+    final updateSql =
+        "UPDATE actionhash SET idaction = '$idaction', executes = 'none', used = 'false' WHERE id = ${row['id']}";
     await api.query(updateSql, dtts: currentDtts);
 
     log('SUCCESS', 'ActionHash CRIADO → idaction: $idaction');
@@ -215,7 +195,8 @@ class ActionHashScript extends EnXScript {
 
     final obj = await _findInDataniverse(dataniverse, idaction, owner);
     if (obj == null) {
-      log('ERROR', 'ActionHash USE: registro não encontrado ou owner inválido → $idaction');
+      log('ERROR',
+          'ActionHash USE: registro não encontrado ou owner inválido → $idaction');
       return;
     }
 
@@ -258,7 +239,8 @@ class ActionHashScript extends EnXScript {
 
     final obj = await _findInDataniverse(dataniverse, idaction, owner);
     if (obj == null) {
-      log('ERROR', 'ActionHash TRANSFER: registro não encontrado ou owner inválido → $idaction');
+      log('ERROR',
+          'ActionHash TRANSFER: registro não encontrado ou owner inválido → $idaction');
       return;
     }
 
@@ -276,11 +258,13 @@ class ActionHashScript extends EnXScript {
       dtts: currentDtts,
     );
 
-    log('SUCCESS', 'ActionHash TRANSFERIDO → $idaction → novo owner: $newOwner');
+    log('SUCCESS',
+        'ActionHash TRANSFERIDO → $idaction → novo owner: $newOwner');
   }
 
   // =================================================================
   // QUEIMAR (executes = 'burn')
+  // Remove da Dataniverse E da cache (MySQL)
   // =================================================================
   Future<void> _burnObjAh({
     required String? idaction,
@@ -294,26 +278,29 @@ class ActionHashScript extends EnXScript {
 
     final obj = await _findInDataniverse(dataniverse, idaction, owner);
     if (obj == null) {
-      log('ERROR', 'ActionHash BURN: registro não encontrado ou owner inválido → $idaction');
+      log('ERROR',
+          'ActionHash BURN: registro não encontrado ou owner inválido → $idaction');
       return;
     }
 
+    // 1. Remove da Dataniverse
     await dataniverse.command({
       'action': 'DELETE',
       'table': 'actionhash',
       'id': obj['id'],
     });
 
+    // 2. Remove da cache (MySQL)
     await api.query(
       "DELETE FROM actionhash WHERE idaction = '$idaction'",
       dtts: currentDtts,
     );
 
-    log('SUCCESS', 'ActionHash QUEIMADO → $idaction');
+    log('SUCCESS', 'ActionHash QUEIMADO (Dataniverse + Cache) → $idaction');
   }
 
   // =================================================================
-  // Helper
+  // Helper - Aguarda DTTS válido no MySQL
   // =================================================================
   Future<String> _waitForValidDtts({
     required EnXApiProvider api,
@@ -335,7 +322,7 @@ class ActionHashScript extends EnXScript {
           log(
             'WARN',
             'ActionHash: aguardando o OttsVision sincronizar o DTTS '
-                'com o MySQL ($attempt/$maxAttempts)',
+            'com o MySQL ($attempt/$maxAttempts)',
           );
         }
       } else if (attempt == maxAttempts) {
@@ -352,6 +339,9 @@ class ActionHashScript extends EnXScript {
     throw StateError('DTTS não sincronizado com o MySQL após 15 segundos');
   }
 
+  // =================================================================
+  // Helper - Busca registro na Dataniverse
+  // =================================================================
   Future<Map<String, dynamic>?> _findInDataniverse(
     DataniverseClient dataniverse,
     String idaction,
@@ -367,8 +357,10 @@ class ActionHashScript extends EnXScript {
 
     try {
       return data.cast<Map<String, dynamic>>().firstWhere(
-        (r) => r['idaction']?.toString() == idaction && r['owner']?.toString() == owner,
-      );
+            (r) =>
+                r['idaction']?.toString() == idaction &&
+                r['owner']?.toString() == owner,
+          );
     } catch (_) {
       return null;
     }
