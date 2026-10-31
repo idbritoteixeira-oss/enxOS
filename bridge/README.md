@@ -27,6 +27,7 @@ A tabela externa precisa expor pelo menos a coluna `dtts`:
 
 ```sql
 CREATE TABLE dtts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   dtts VARCHAR(255) NOT NULL
 );
 ```

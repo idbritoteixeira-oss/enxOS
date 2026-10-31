@@ -68,9 +68,8 @@ def latest_dtts(profile: str) -> str | None:
     try:
         connection = mysql.connector.connect(**db_config(profile))
         cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT dtts FROM dtts")
-        rows = cursor.fetchall()
-        row = rows[-1] if rows else None
+        cursor.execute("SELECT dtts FROM dtts ORDER BY id DESC LIMIT 1")
+        row = cursor.fetchone()
         if not row or row.get("dtts") is None:
             return None
         return str(row["dtts"])

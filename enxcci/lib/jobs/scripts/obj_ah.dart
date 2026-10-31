@@ -32,20 +32,13 @@ class ActionHashScript extends EnXScript {
 
     try {
       // =========================================================
-      // DELAY OBRIGATÓRIO
-      // Espera o Job OttsVision terminar de rotacionar o DTTS
-      // =========================================================
-      await Future.delayed(const Duration(seconds: 3));
-
-      // =========================================================
       // TRAVA DE SEGURANÇA DTTS
       // =========================================================
-      final currentDtts = await OttsVision.currentDtts(dataniverse);
-
-      if (currentDtts == null || currentDtts.isEmpty) {
-        log('ERROR', 'ActionHash: DTTS não encontrado → Acesso negado');
-        return;
-      }
+      final currentDtts = await _waitForValidDtts(
+        api: api,
+        dataniverse: dataniverse,
+        log: log,
+      );
 
       // Verifica expiração (60s)
       final dttsRecords = await dataniverse.command({
@@ -63,7 +56,7 @@ class ActionHashScript extends EnXScript {
         }
       }
 
-      log('INFO', 'ActionHash: DTTS válido → $currentDtts');
+      log('INFO', 'ActionHash: DTTS sincronizado com o MySQL');
 
       // =========================================================
       // 1. Varre a tabela actionhash no MySQL/cache
@@ -312,6 +305,43 @@ class ActionHashScript extends EnXScript {
   // =================================================================
   // Helper
   // =================================================================
+  Future<String> _waitForValidDtts({
+    required EnXApiProvider api,
+    required DataniverseClient dataniverse,
+    required EngineLog log,
+  }) async {
+    const maxAttempts = 15;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      final dtts = await OttsVision.currentDtts(dataniverse);
+      if (dtts != null && dtts.isNotEmpty) {
+        try {
+          await api.query('SELECT 1 AS dtts_ready', dtts: dtts);
+          return dtts;
+        } catch (error) {
+          final isDttsMismatch =
+              error.toString().toLowerCase().contains('dtts inválido');
+          if (!isDttsMismatch || attempt == maxAttempts) rethrow;
+          log(
+            'WARN',
+            'ActionHash: aguardando o OttsVision sincronizar o DTTS '
+                'com o MySQL ($attempt/$maxAttempts)',
+          );
+        }
+      } else if (attempt == maxAttempts) {
+        throw StateError(
+          'DTTS não encontrado no Dataniverse após $maxAttempts tentativas',
+        );
+      }
+
+      if (attempt < maxAttempts) {
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+
+    throw StateError('DTTS não sincronizado com o MySQL após 15 segundos');
+  }
+
   Future<Map<String, dynamic>?> _findInDataniverse(
     DataniverseClient dataniverse,
     String idaction,
