@@ -73,7 +73,7 @@ class ActionHashScript extends EnXScript {
         dtts: currentDtts,
       );
 
-      if (result is! List || result.isEmpty) {
+      if (result.isEmpty) {
         log('INFO', 'ActionHash: nenhum registro pendente de finalização');
         return;
       }
