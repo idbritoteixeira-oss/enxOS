@@ -3,6 +3,7 @@ import 'package:enxcci/jobs/scripts/generic_script.dart';
 import 'package:enxcci/jobs/scripts/ottsvision_hash_script.dart';
 import 'package:enxcci/jobs/scripts/otts_seed_script.dart';
 import 'package:enxcci/jobs/scripts/obj_ah.dart';
+import 'package:enxcci/jobs/scripts/dwellers.dart';
 
 class ScriptRegistry {
   static const customJavaScriptId = 'custom_js';
@@ -12,7 +13,8 @@ class ScriptRegistry {
     'otts_seed': OttsSeedScript(),
     GenericScript().id: GenericScript(),
     OttsVisionHashScript().id: OttsVisionHashScript(),
-    ActionHashScript().id: ActionHashScript(), // ← novo Job ActionHash
+    ActionHashScript().id: ActionHashScript(),
+    DwellersScript().id: DwellersScript(), // ← novo Job ActionHash
   };
 
   static EnXScript? get(String id) => _scripts[id];
