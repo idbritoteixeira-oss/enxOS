@@ -45,11 +45,11 @@ class DwellersScript extends EnXScript {
 
       // Busca contas ainda não seladas (dataniverse = 0)
       final result = await api.query(
-        "SELECT * FROM enx_nation WHERE dataniverse = 0",
+        'SELECT * FROM enx_nation WHERE dataniverse = 0',
         dtts: currentDtts,
       );
 
-      if (result is! List || result.isEmpty) {
+      if (result.isEmpty) {
         log('INFO', 'Dwellers: nenhuma conta pendente de selagem');
         return;
       }
@@ -113,7 +113,7 @@ class DwellersScript extends EnXScript {
 
     // 2. Marca como selado no MySQL
     await api.query(
-      "UPDATE enx_nation SET dataniverse = 1 WHERE id = $id",
+      'UPDATE enx_nation SET dataniverse = 1 WHERE id = $id',
       dtts: currentDtts,
     );
 
