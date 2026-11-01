@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import 'package:enxcci/config/enxcci_config.dart';
+import 'package:enxcci/database/enx_api_provider.dart';
 import 'package:enxcci/ui/app_controller.dart';
 
 class ActionHashScreen extends StatefulWidget {
@@ -23,6 +23,17 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
     _load();
   }
 
+  // ================================================================
+  // Helper - pega API de uma conexão ativa
+  // ================================================================
+  EnXApiProvider? _createApi() {
+    final active = widget.controller.connections.values
+        .where((c) => c.active)
+        .toList();
+    if (active.isEmpty) return null;
+    return EnXApiProvider(config: active.first);
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -36,17 +47,10 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
       });
 
       final data = result['data'];
-      if (data is List) {
-        setState(() {
-          _items = data.cast<Map<String, dynamic>>();
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _items = [];
-          _loading = false;
-        });
-      }
+      setState(() {
+        _items = data is List ? data.cast<Map<String, dynamic>>() : [];
+        _loading = false;
+      });
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -100,14 +104,14 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
   }
 
   // ================================================================
-  // CRIAR NOVO (grava no MySQL com executes = 'obj')
+  // CRIAR NOVO
   // ================================================================
   Future<void> _showCreateDialog(BuildContext context) async {
-    final owner = TextEditingController();
-    final value = TextEditingController(text: '1000');
-    final planted = TextEditingController();
-    final limite = TextEditingController();
-    final content = TextEditingController(text: '{}');
+    final ownerCtrl = TextEditingController();
+    final valueCtrl = TextEditingController(text: '1000');
+    final plantedCtrl = TextEditingController();
+    final limiteCtrl = TextEditingController();
+    final contentCtrl = TextEditingController(text: '{}');
     String typeobj = 'coin';
     String limited = 'false';
     String transferable = 'true';
@@ -125,10 +129,10 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _field(owner, 'Owner (12 dígitos)', required: true),
+                  _field(ownerCtrl, 'Owner (12 dígitos)', required: true),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: typeobj,
+                    initialValue: typeobj,
                     decoration: const InputDecoration(labelText: 'Tipo'),
                     items: const [
                       DropdownMenuItem(value: 'coin', child: Text('coin')),
@@ -139,31 +143,39 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                     onChanged: (v) => setState(() => typeobj = v ?? 'coin'),
                   ),
                   const SizedBox(height: 8),
-                  _field(value, 'Value'),
-                  _field(planted, 'Planted (código da série)'),
-                  _field(limite, 'Limite (0 = ilimitado)', keyboard: TextInputType.number),
+                  _field(valueCtrl, 'Value'),
+                  _field(plantedCtrl, 'Planted (código da série)'),
+                  _field(limiteCtrl, 'Limite (0 = ilimitado)',
+                      keyboard: TextInputType.number),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: limited,
-                          decoration: const InputDecoration(labelText: 'Limited'),
+                          initialValue: limited,
+                          decoration:
+                              const InputDecoration(labelText: 'Limited'),
                           items: const [
-                            DropdownMenuItem(value: 'false', child: Text('false')),
-                            DropdownMenuItem(value: 'true', child: Text('true')),
+                            DropdownMenuItem(
+                                value: 'false', child: Text('false')),
+                            DropdownMenuItem(
+                                value: 'true', child: Text('true')),
                           ],
-                          onChanged: (v) => setState(() => limited = v ?? 'false'),
+                          onChanged: (v) =>
+                              setState(() => limited = v ?? 'false'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: transferable,
-                          decoration: const InputDecoration(labelText: 'Transferable'),
+                          initialValue: transferable,
+                          decoration: const InputDecoration(
+                              labelText: 'Transferable'),
                           items: const [
-                            DropdownMenuItem(value: 'true', child: Text('true')),
-                            DropdownMenuItem(value: 'false', child: Text('false')),
+                            DropdownMenuItem(
+                                value: 'true', child: Text('true')),
+                            DropdownMenuItem(
+                                value: 'false', child: Text('false')),
                           ],
                           onChanged: (v) =>
                               setState(() => transferable = v ?? 'true'),
@@ -173,7 +185,7 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
-                    controller: content,
+                    controller: contentCtrl,
                     minLines: 3,
                     maxLines: 5,
                     decoration: const InputDecoration(
@@ -193,25 +205,37 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
               onPressed: () async {
                 if (!(formKey.currentState?.validate() ?? false)) return;
 
-                // Grava no MySQL com executes = 'obj' para o Job processar
+                final api = _createApi();
+                if (api == null) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Nenhuma conexão ativa'),
+                        backgroundColor: Color(0xFFFF6B7A),
+                      ),
+                    );
+                  }
+                  return;
+                }
+
                 try {
-                  await widget.controller.api.query('''
+                  await api.query('''
                     INSERT INTO actionhash 
                     (idaction, owner, typeobj, limited, transferable, used, executes, 
                      image_pixel, value, planted, content_json, limite, log)
                     VALUES 
                     ('TEMP${DateTime.now().millisecondsSinceEpoch}', 
-                     '${owner.text.trim()}', 
+                     '${ownerCtrl.text.trim()}', 
                      '$typeobj', 
                      '$limited', 
                      '$transferable', 
                      'false', 
                      'obj', 
                      'pixel_test', 
-                     '${value.text.trim()}', 
-                     '${planted.text.trim()}', 
-                     '${content.text.trim()}', 
-                     '${limite.text.trim()}', 
+                     '${valueCtrl.text.trim()}', 
+                     '${plantedCtrl.text.trim()}', 
+                     '${contentCtrl.text.trim()}', 
+                     '${limiteCtrl.text.trim()}', 
                      'aguardando criação')
                   ''');
 
@@ -228,10 +252,13 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                          content: Text('Erro: $e'),
-                          backgroundColor: const Color(0xFFFF6B7A)),
+                        content: Text('Erro: $e'),
+                        backgroundColor: const Color(0xFFFF6B7A),
+                      ),
                     );
                   }
+                } finally {
+                  api.dispose();
                 }
               },
               child: const Text('Criar'),
@@ -276,7 +303,10 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
             Text(
               item['idaction']?.toString() ?? '—',
               style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 16),
             _detailRow('Owner', item['owner']),
@@ -289,12 +319,17 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
             _detailRow('Used', item['used']),
             _detailRow('Log', item['log']),
             const SizedBox(height: 12),
-            const Text('hashprivate (sensível)',
-                style: TextStyle(color: Colors.white54, fontSize: 12)),
+            const Text(
+              'hashprivate (sensível)',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
             Text(
               item['hashprivate']?.toString() ?? '—',
               style: const TextStyle(
-                  color: Color(0xFF41D5C3), fontFamily: 'monospace', fontSize: 13),
+                color: Color(0xFF41D5C3),
+                fontFamily: 'monospace',
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 24),
             Row(
@@ -322,7 +357,8 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFFF6B7A)),
+                      foregroundColor: const Color(0xFFFF6B7A),
+                    ),
                     onPressed: () {
                       Navigator.pop(context);
                       _triggerAction(context, item, 'burn');
@@ -346,12 +382,16 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
         children: [
           SizedBox(
             width: 110,
-            child: Text(label,
-                style: const TextStyle(color: Colors.white54, fontSize: 13)),
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
+            ),
           ),
           Expanded(
-            child: Text(value?.toString() ?? '—',
-                style: const TextStyle(color: Colors.white, fontSize: 13)),
+            child: Text(
+              value?.toString() ?? '—',
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
           ),
         ],
       ),
@@ -359,7 +399,7 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
   }
 
   // ================================================================
-  // DISPARA AÇÃO (atualiza executes no MySQL)
+  // DISPARA AÇÃO
   // ================================================================
   Future<void> _triggerAction(
     BuildContext context,
@@ -369,8 +409,21 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
     final idaction = item['idaction']?.toString();
     if (idaction == null) return;
 
+    final api = _createApi();
+    if (api == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nenhuma conexão ativa'),
+            backgroundColor: Color(0xFFFF6B7A),
+          ),
+        );
+      }
+      return;
+    }
+
     try {
-      await widget.controller.api.query(
+      await api.query(
         "UPDATE actionhash SET executes = '$action', log = 'aguardando $action' WHERE idaction = '$idaction'",
       );
 
@@ -383,10 +436,13 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Erro: $e'),
-              backgroundColor: const Color(0xFFFF6B7A)),
+            content: Text('Erro: $e'),
+            backgroundColor: const Color(0xFFFF6B7A),
+          ),
         );
       }
+    } finally {
+      api.dispose();
     }
   }
 }
@@ -439,12 +495,16 @@ class _ActionHashCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF41D5C3).withOpacity(0.15),
+                        color: const Color(0xFF41D5C3).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Text('usado',
-                          style: TextStyle(
-                              color: Color(0xFF41D5C3), fontSize: 11)),
+                      child: const Text(
+                        'usado',
+                        style: TextStyle(
+                          color: Color(0xFF41D5C3),
+                          fontSize: 11,
+                        ),
+                      ),
                     ),
                   PopupMenuButton<String>(
                     onSelected: onAction,
@@ -467,7 +527,9 @@ class _ActionHashCard extends StatelessWidget {
                 Text(
                   'Série: $serie',
                   style: const TextStyle(
-                      color: Color(0xFF38BDF8), fontSize: 13),
+                    color: Color(0xFF38BDF8),
+                    fontSize: 13,
+                  ),
                 ),
               ],
               if (item['log'] != null) ...[
@@ -490,16 +552,17 @@ Widget _field(
   String label, {
   TextInputType? keyboard,
   bool required = false,
-}) =>
-    Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboard,
-        decoration: InputDecoration(labelText: label),
-        validator: required
-            ? (value) =>
-                value == null || value.trim().isEmpty ? 'Obrigatório' : null
-            : null,
-      ),
-    );
+}) {
+  return Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: TextFormField(
+      controller: controller,
+      keyboardType: keyboard,
+      decoration: InputDecoration(labelText: label),
+      validator: required
+          ? (value) =>
+              value == null || value.trim().isEmpty ? 'Obrigatório' : null
+          : null,
+    ),
+  );
+}
