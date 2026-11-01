@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:enxcci/config/enxcci_config.dart';
 import 'package:enxcci/database/enx_api_provider.dart';
 import 'package:enxcci/ui/app_controller.dart';
 
@@ -27,11 +26,12 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
   // Helper - pega API de uma conexão ativa
   // ================================================================
   EnXApiProvider? _createApi() {
-    final active = widget.controller.connections.values
-        .where((c) => c.active)
-        .toList();
-    if (active.isEmpty) return null;
-    return EnXApiProvider(config: active.first);
+  final active = widget.controller.connections
+      .where((c) => c.active)
+      .toList();
+
+  if (active.isEmpty) return null;
+  return EnXApiProvider(config: active.first);
   }
 
   Future<void> _load() async {
