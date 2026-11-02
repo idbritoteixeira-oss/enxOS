@@ -241,16 +241,18 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
 
                 final api = _createApi();
                 if (api == null) {
-                  _showError(context, 'Nenhuma conexão ativa');
-                  return;
-                }
+  if (!context.mounted) return;
+  _showError(context, 'Nenhuma conexão ativa');
+  return;
+}
 
-                final dtts = await _getCurrentDtts();
-                if (dtts == null || dtts.isEmpty) {
-                  _showError(context, 'DTTS inválido ou ausente');
-                  api.dispose();
-                  return;
-                }
+final dtts = await _getCurrentDtts();
+if (dtts == null || dtts.isEmpty) {
+  if (!context.mounted) return;
+  _showError(context, 'DTTS inválido ou ausente');
+  api.dispose();
+  return;
+}
 
                 final imagePixel = imagePixelCtrl.text.trim().replaceAll("'", '');
                 final contentJson = contentCtrl.text.trim().replaceAll("'", '');
@@ -276,7 +278,7 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                      'aguardando criação')
                   ''', dtts: dtts);
 
-                  if (context.mounted) {
+                  if (!context.mounted) return; {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -286,6 +288,7 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                     _load();
                   }
                 } catch (e) {
+                  if (!context.mounted) return;
                   _showError(context, 'Erro: $e');
                 } finally {
                   api.dispose();
@@ -462,12 +465,13 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
         dtts: dtts,
       );
 
-      if (context.mounted) {
+      if (!context.mounted) return; {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ação "$action" enviada para o Job')),
         );
       }
     } catch (e) {
+      if (!context.mounted) return;
       _showError(context, 'Erro: $e');
     } finally {
       api.dispose();
