@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:enxcci/database/enx_api_provider.dart';
+import 'package:enxcci/engine/enxcci_engine.dart';
 import 'package:enxcci/ui/app_controller.dart';
 
 class ActionHashScreen extends StatefulWidget {
@@ -23,15 +24,22 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
   }
 
   // ================================================================
-  // Helper - pega API de uma conexão ativa
+  // Helpers
   // ================================================================
   EnXApiProvider? _createApi() {
-  final active = widget.controller.connections
-      .where((c) => c.active)
-      .toList();
+    final active = widget.controller.connections
+        .where((c) => c.active)
+        .toList();
+    if (active.isEmpty) return null;
+    return EnXApiProvider(config: active.first);
+  }
 
-  if (active.isEmpty) return null;
-  return EnXApiProvider(config: active.first);
+  Future<String?> _getCurrentDtts() async {
+    try {
+      return await OttsVision.currentDtts(widget.controller.dataniverse);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _load() async {
@@ -104,14 +112,16 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
   }
 
   // ================================================================
-  // CRIAR NOVO
+  // CRIAR NOVO (igual ao gerador PHP)
   // ================================================================
   Future<void> _showCreateDialog(BuildContext context) async {
-    final ownerCtrl = TextEditingController();
-    final valueCtrl = TextEditingController(text: '1000');
-    final plantedCtrl = TextEditingController();
-    final limiteCtrl = TextEditingController();
-    final contentCtrl = TextEditingController(text: '{}');
+    final ownerCtrl = TextEditingController(text: '123456789012');
+    final valueCtrl = TextEditingController(text: '0.000000');
+    final plantedCtrl = TextEditingController(text: '1010');
+    final limiteCtrl = TextEditingController(text: '0');
+    final imagePixelCtrl = TextEditingController(text: 'pixel_test');
+    final contentCtrl = TextEditingController(
+        text: '{"name": "", "date": "", "desc": ""}');
     String typeobj = 'coin';
     String limited = 'false';
     String transferable = 'true';
@@ -144,10 +154,6 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                   ),
                   const SizedBox(height: 8),
                   _field(valueCtrl, 'Value'),
-                  _field(plantedCtrl, 'Planted (código da série)'),
-                  _field(limiteCtrl, 'Limite (0 = ilimitado)',
-                      keyboard: TextInputType.number),
-                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
@@ -184,6 +190,18 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _field(plantedCtrl, 'Planted (série)')),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _field(limiteCtrl, 'Limite (0=ilimitado)',
+                              keyboard: TextInputType.number)),
+                    ],
+                  ),
+                  _field(imagePixelCtrl, 'Image Pixel'),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: contentCtrl,
                     minLines: 3,
@@ -207,14 +225,14 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
 
                 final api = _createApi();
                 if (api == null) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Nenhuma conexão ativa'),
-                        backgroundColor: Color(0xFFFF6B7A),
-                      ),
-                    );
-                  }
+                  _showError(context, 'Nenhuma conexão ativa');
+                  return;
+                }
+
+                final dtts = await _getCurrentDtts();
+                if (dtts == null || dtts.isEmpty) {
+                  _showError(context, 'DTTS inválido ou ausente');
+                  api.dispose();
                   return;
                 }
 
@@ -231,13 +249,13 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                      '$transferable', 
                      'false', 
                      'obj', 
-                     'pixel_test', 
+                     '${imagePixelCtrl.text.trim()}', 
                      '${valueCtrl.text.trim()}', 
                      '${plantedCtrl.text.trim()}', 
                      '${contentCtrl.text.trim()}', 
                      '${limiteCtrl.text.trim()}', 
                      'aguardando criação')
-                  ''');
+                  ''', dtts: dtts);
 
                   if (context.mounted) {
                     Navigator.pop(context);
@@ -249,14 +267,7 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                     _load();
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro: $e'),
-                        backgroundColor: const Color(0xFFFF6B7A),
-                      ),
-                    );
-                  }
+                  _showError(context, 'Erro: $e');
                 } finally {
                   api.dispose();
                 }
@@ -282,7 +293,7 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
       ),
       builder: (context) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: 0.7,
+        initialChildSize: 0.75,
         minChildSize: 0.4,
         maxChildSize: 0.95,
         builder: (context, scrollController) => ListView(
@@ -313,17 +324,19 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
             _detailRow('Tipo', item['typeobj']),
             _detailRow('Value', item['value']),
             _detailRow('Planted', item['planted']),
+            _detailRow('Limite', item['limite']),
             _detailRow('Série', item['serie'] ?? item['content_json']),
             _detailRow('Limited', item['limited']),
             _detailRow('Transferable', item['transferable']),
             _detailRow('Used', item['used']),
+            _detailRow('Image Pixel', item['image_pixel']),
             _detailRow('Log', item['log']),
             const SizedBox(height: 12),
             const Text(
               'hashprivate (sensível)',
               style: TextStyle(color: Colors.white54, fontSize: 12),
             ),
-            Text(
+            SelectableText(
               item['hashprivate']?.toString() ?? '—',
               style: const TextStyle(
                 color: Color(0xFF41D5C3),
@@ -399,7 +412,7 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
   }
 
   // ================================================================
-  // DISPARA AÇÃO
+  // DISPARA AÇÃO (com DTTS)
   // ================================================================
   Future<void> _triggerAction(
     BuildContext context,
@@ -411,20 +424,21 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
 
     final api = _createApi();
     if (api == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nenhuma conexão ativa'),
-            backgroundColor: Color(0xFFFF6B7A),
-          ),
-        );
-      }
+      _showError(context, 'Nenhuma conexão ativa');
+      return;
+    }
+
+    final dtts = await _getCurrentDtts();
+    if (dtts == null || dtts.isEmpty) {
+      _showError(context, 'DTTS inválido ou ausente');
+      api.dispose();
       return;
     }
 
     try {
       await api.query(
         "UPDATE actionhash SET executes = '$action', log = 'aguardando $action' WHERE idaction = '$idaction'",
+        dtts: dtts,
       );
 
       if (context.mounted) {
@@ -433,16 +447,20 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: $e'),
-            backgroundColor: const Color(0xFFFF6B7A),
-          ),
-        );
-      }
+      _showError(context, 'Erro: $e');
     } finally {
       api.dispose();
+    }
+  }
+
+  void _showError(BuildContext context, String msg) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: const Color(0xFFFF6B7A),
+        ),
+      );
     }
   }
 }
@@ -495,7 +513,8 @@ class _ActionHashCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF41D5C3).withValues(alpha: 0.15),
+                        color:
+                            const Color(0xFF41D5C3).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
