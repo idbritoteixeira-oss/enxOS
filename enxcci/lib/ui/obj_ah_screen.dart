@@ -24,9 +24,8 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
   }
 
   EnXApiProvider? _createApi() {
-    final active = widget.controller.connections
-        .where((c) => c.active)
-        .toList();
+    final active =
+        widget.controller.connections.where((c) => c.active).toList();
     if (active.isEmpty) return null;
     return EnXApiProvider(config: active.first);
   }
@@ -81,12 +80,18 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(
-                  child: Text(_error!,
-                      style: const TextStyle(color: Color(0xFFFF6B7A))))
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Color(0xFFFF6B7A)),
+                  ),
+                )
               : _items.isEmpty
                   ? const Center(
-                      child: Text('Nenhum obj.ah encontrado',
-                          style: TextStyle(color: Colors.white60)))
+                      child: Text(
+                        'Nenhum obj.ah encontrado',
+                        style: TextStyle(color: Colors.white60),
+                      ),
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 90),
                       itemCount: _items.length,
@@ -115,7 +120,8 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
     final limiteCtrl = TextEditingController(text: '0');
     final imagePixelCtrl = TextEditingController(text: 'pixel_test');
     final contentCtrl = TextEditingController(
-        text: '{"name": "", "date": "", "desc": ""}');
+      text: '{"name": "", "date": "", "desc": ""}',
+    );
     String typeobj = 'coin';
     String limited = 'false';
     String transferable = 'true';
@@ -140,7 +146,10 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                       const Expanded(
                         child: Text(
                           'Prévia do image_pixel (formato P256)',
-                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ],
@@ -170,9 +179,13 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                               const InputDecoration(labelText: 'Limited'),
                           items: const [
                             DropdownMenuItem(
-                                value: 'false', child: Text('false')),
+                              value: 'false',
+                              child: Text('false'),
+                            ),
                             DropdownMenuItem(
-                                value: 'true', child: Text('true')),
+                              value: 'true',
+                              child: Text('true'),
+                            ),
                           ],
                           onChanged: (v) =>
                               setState(() => limited = v ?? 'false'),
@@ -183,12 +196,17 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                         child: DropdownButtonFormField<String>(
                           initialValue: transferable,
                           decoration: const InputDecoration(
-                              labelText: 'Transferable'),
+                            labelText: 'Transferable',
+                          ),
                           items: const [
                             DropdownMenuItem(
-                                value: 'true', child: Text('true')),
+                              value: 'true',
+                              child: Text('true'),
+                            ),
                             DropdownMenuItem(
-                                value: 'false', child: Text('false')),
+                              value: 'false',
+                              child: Text('false'),
+                            ),
                           ],
                           onChanged: (v) =>
                               setState(() => transferable = v ?? 'true'),
@@ -202,8 +220,11 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                       Expanded(child: _field(plantedCtrl, 'Planted (série)')),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _field(limiteCtrl, 'Limite (0=ilimitado)',
-                            keyboard: TextInputType.number),
+                        child: _field(
+                          limiteCtrl,
+                          'Limite (0=ilimitado)',
+                          keyboard: TextInputType.number,
+                        ),
                       ),
                     ],
                   ),
@@ -233,32 +254,36 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar')),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
             FilledButton(
               onPressed: () async {
                 if (!(formKey.currentState?.validate() ?? false)) return;
 
                 final api = _createApi();
                 if (api == null) {
-  if (!context.mounted) return;
-  _showError(context, 'Nenhuma conexão ativa');
-  return;
-}
+                  if (!context.mounted) return;
+                  _showError(context, 'Nenhuma conexão ativa');
+                  return;
+                }
 
-final dtts = await _getCurrentDtts();
-if (dtts == null || dtts.isEmpty) {
-  if (!context.mounted) return;
-  _showError(context, 'DTTS inválido ou ausente');
-  api.dispose();
-  return;
-}
+                final dtts = await _getCurrentDtts();
+                if (dtts == null || dtts.isEmpty) {
+                  if (!context.mounted) return;
+                  _showError(context, 'DTTS inválido ou ausente');
+                  api.dispose();
+                  return;
+                }
 
-                final imagePixel = imagePixelCtrl.text.trim().replaceAll("'", '');
-                final contentJson = contentCtrl.text.trim().replaceAll("'", '');
+                final imagePixel =
+                    imagePixelCtrl.text.trim().replaceAll("'", '');
+                final contentJson =
+                    contentCtrl.text.trim().replaceAll("'", '');
 
                 try {
-                  await api.query('''
+                  await api.query(
+                    '''
                     INSERT INTO actionhash 
                     (idaction, owner, typeobj, limited, transferable, used, executes, 
                      image_pixel, value, planted, content_json, limite, log)
@@ -276,17 +301,20 @@ if (dtts == null || dtts.isEmpty) {
                      '$contentJson', 
                      '${limiteCtrl.text.trim()}', 
                      'aguardando criação')
-                  ''', dtts: dtts);
+                    ''',
+                    dtts: dtts,
+                  );
 
-                  if (!context.mounted) return; {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'obj.ah enviado para o Job (executes = obj)')),
-                    );
-                    _load();
-                  }
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'obj.ah enviado para o Job (executes = obj)',
+                      ),
+                    ),
+                  );
+                  _load();
                 } catch (e) {
                   if (!context.mounted) return;
                   _showError(context, 'Erro: $e');
@@ -448,12 +476,14 @@ if (dtts == null || dtts.isEmpty) {
 
     final api = _createApi();
     if (api == null) {
+      if (!context.mounted) return;
       _showError(context, 'Nenhuma conexão ativa');
       return;
     }
 
     final dtts = await _getCurrentDtts();
     if (dtts == null || dtts.isEmpty) {
+      if (!context.mounted) return;
       _showError(context, 'DTTS inválido ou ausente');
       api.dispose();
       return;
@@ -465,11 +495,10 @@ if (dtts == null || dtts.isEmpty) {
         dtts: dtts,
       );
 
-      if (!context.mounted) return; {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ação "$action" enviada para o Job')),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ação "$action" enviada para o Job')),
+      );
     } catch (e) {
       if (!context.mounted) return;
       _showError(context, 'Erro: $e');
@@ -479,14 +508,13 @@ if (dtts == null || dtts.isEmpty) {
   }
 
   void _showError(BuildContext context, String msg) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(msg),
-          backgroundColor: const Color(0xFFFF6B7A),
-        ),
-      );
-    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: const Color(0xFFFF6B7A),
+      ),
+    );
   }
 }
 
@@ -541,7 +569,9 @@ class _ActionHashCard extends StatelessWidget {
                         if (used)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF41D5C3)
                                   .withValues(alpha: 0.15),
@@ -558,12 +588,18 @@ class _ActionHashCard extends StatelessWidget {
                         PopupMenuButton<String>(
                           onSelected: onAction,
                           itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'use', child: Text('Usar')),
                             PopupMenuItem(
-                                value: 'transation',
-                                child: Text('Transferir')),
+                              value: 'use',
+                              child: Text('Usar'),
+                            ),
                             PopupMenuItem(
-                                value: 'burn', child: Text('Queimar')),
+                              value: 'transation',
+                              child: Text('Transferir'),
+                            ),
+                            PopupMenuItem(
+                              value: 'burn',
+                              child: Text('Queimar'),
+                            ),
                           ],
                         ),
                       ],
@@ -571,8 +607,10 @@ class _ActionHashCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Tipo: $typeobj · Owner: $owner',
-                      style:
-                          const TextStyle(color: Colors.white60, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                      ),
                     ),
                     if (serie != null && serie.isNotEmpty) ...[
                       const SizedBox(height: 2),
@@ -589,7 +627,9 @@ class _ActionHashCard extends StatelessWidget {
                       Text(
                         item['log'].toString(),
                         style: const TextStyle(
-                            color: Colors.white54, fontSize: 12),
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ],
@@ -603,8 +643,7 @@ class _ActionHashCard extends StatelessWidget {
   }
 }
 
-/// Renderiza image_pixel no formato:
-/// P256|ff0000,00ff00,...|000102FF...
+/// Formato: P256|ff0000,00ff00,...|000102FF...
 class PixelImage extends StatelessWidget {
   const PixelImage({super.key, required this.code, this.size = 48});
 
@@ -623,8 +662,11 @@ class PixelImage extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.white12),
         ),
-        child: const Icon(Icons.image_not_supported,
-            size: 18, color: Colors.white24),
+        child: const Icon(
+          Icons.image_not_supported,
+          size: 18,
+          color: Colors.white24,
+        ),
       );
     }
 
@@ -718,3 +760,4 @@ Widget _field(
     ),
   );
 }
+  
