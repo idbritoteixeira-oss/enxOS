@@ -23,9 +23,6 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
     _load();
   }
 
-  // ================================================================
-  // Helpers
-  // ================================================================
   EnXApiProvider? _createApi() {
     final active = widget.controller.connections
         .where((c) => c.active)
@@ -111,9 +108,6 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
     );
   }
 
-  // ================================================================
-  // CRIAR NOVO (igual ao gerador PHP)
-  // ================================================================
   Future<void> _showCreateDialog(BuildContext context) async {
     final ownerCtrl = TextEditingController(text: '123456789012');
     final valueCtrl = TextEditingController(text: '0.000000');
@@ -139,6 +133,19 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Row(
+                    children: [
+                      PixelImage(code: imagePixelCtrl.text, size: 56),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Prévia do image_pixel (formato P256)',
+                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   _field(ownerCtrl, 'Owner (12 dígitos)', required: true),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
@@ -192,15 +199,24 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(
-                          child: _field(plantedCtrl, 'Planted (série)')),
+                      Expanded(child: _field(plantedCtrl, 'Planted (série)')),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _field(limiteCtrl, 'Limite (0=ilimitado)',
-                              keyboard: TextInputType.number)),
+                        child: _field(limiteCtrl, 'Limite (0=ilimitado)',
+                            keyboard: TextInputType.number),
+                      ),
                     ],
                   ),
-                  _field(imagePixelCtrl, 'Image Pixel'),
+                  TextFormField(
+                    controller: imagePixelCtrl,
+                    minLines: 2,
+                    maxLines: 4,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Image Pixel (P256|cores|indices)',
+                      alignLabelWithHint: true,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: contentCtrl,
@@ -236,6 +252,9 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                   return;
                 }
 
+                final imagePixel = imagePixelCtrl.text.trim().replaceAll("'", '');
+                final contentJson = contentCtrl.text.trim().replaceAll("'", '');
+
                 try {
                   await api.query('''
                     INSERT INTO actionhash 
@@ -249,10 +268,10 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
                      '$transferable', 
                      'false', 
                      'obj', 
-                     '${imagePixelCtrl.text.trim()}', 
+                     '$imagePixel', 
                      '${valueCtrl.text.trim()}', 
                      '${plantedCtrl.text.trim()}', 
-                     '${contentCtrl.text.trim()}', 
+                     '$contentJson', 
                      '${limiteCtrl.text.trim()}', 
                      'aguardando criação')
                   ''', dtts: dtts);
@@ -280,9 +299,6 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
     );
   }
 
-  // ================================================================
-  // DETALHES
-  // ================================================================
   void _showDetails(BuildContext context, Map<String, dynamic> item) {
     showModalBottomSheet(
       context: context,
@@ -311,6 +327,13 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            Center(
+              child: PixelImage(
+                code: item['image_pixel']?.toString(),
+                size: 128,
+              ),
+            ),
+            const SizedBox(height: 16),
             Text(
               item['idaction']?.toString() ?? '—',
               style: const TextStyle(
@@ -329,7 +352,6 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
             _detailRow('Limited', item['limited']),
             _detailRow('Transferable', item['transferable']),
             _detailRow('Used', item['used']),
-            _detailRow('Image Pixel', item['image_pixel']),
             _detailRow('Log', item['log']),
             const SizedBox(height: 12),
             const Text(
@@ -403,6 +425,8 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
           Expanded(
             child: Text(
               value?.toString() ?? '—',
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: Colors.white, fontSize: 13),
             ),
           ),
@@ -411,9 +435,6 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
     );
   }
 
-  // ================================================================
-  // DISPARA AÇÃO (com DTTS)
-  // ================================================================
   Future<void> _triggerAction(
     BuildContext context,
     Map<String, dynamic> item,
@@ -465,9 +486,6 @@ class _ActionHashScreenState extends State<ActionHashScreen> {
   }
 }
 
-// =================================================================
-// CARD
-// =================================================================
 class _ActionHashCard extends StatelessWidget {
   const _ActionHashCard({
     required this.item,
@@ -494,76 +512,187 @@ class _ActionHashCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      idaction,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
+              PixelImage(
+                code: item['image_pixel']?.toString(),
+                size: 56,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            idaction,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        if (used)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF41D5C3)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'usado',
+                              style: TextStyle(
+                                color: Color(0xFF41D5C3),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        PopupMenuButton<String>(
+                          onSelected: onAction,
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(value: 'use', child: Text('Usar')),
+                            PopupMenuItem(
+                                value: 'transation',
+                                child: Text('Transferir')),
+                            PopupMenuItem(
+                                value: 'burn', child: Text('Queimar')),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                  if (used)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color:
-                            const Color(0xFF41D5C3).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'usado',
-                        style: TextStyle(
-                          color: Color(0xFF41D5C3),
-                          fontSize: 11,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tipo: $typeobj · Owner: $owner',
+                      style:
+                          const TextStyle(color: Colors.white60, fontSize: 13),
+                    ),
+                    if (serie != null && serie.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Série: $serie',
+                        style: const TextStyle(
+                          color: Color(0xFF38BDF8),
+                          fontSize: 13,
                         ),
                       ),
-                    ),
-                  PopupMenuButton<String>(
-                    onSelected: onAction,
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'use', child: Text('Usar')),
-                      PopupMenuItem(
-                          value: 'transation', child: Text('Transferir')),
-                      PopupMenuItem(value: 'burn', child: Text('Queimar')),
                     ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Tipo: $typeobj · Owner: $owner',
-                style: const TextStyle(color: Colors.white60, fontSize: 13),
-              ),
-              if (serie != null && serie.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Série: $serie',
-                  style: const TextStyle(
-                    color: Color(0xFF38BDF8),
-                    fontSize: 13,
-                  ),
+                    if (item['log'] != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item['log'].toString(),
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-              if (item['log'] != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  item['log'].toString(),
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ],
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+/// Renderiza image_pixel no formato:
+/// P256|ff0000,00ff00,...|000102FF...
+class PixelImage extends StatelessWidget {
+  const PixelImage({super.key, required this.code, this.size = 48});
+
+  final String? code;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final pixels = parsePixelCode(code);
+    if (pixels == null) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: const Icon(Icons.image_not_supported,
+            size: 18, color: Colors.white24),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: _PixelPainter(pixels),
+      ),
+    );
+  }
+
+  static List<List<Color>>? parsePixelCode(String? code) {
+    if (code == null || !code.startsWith('P')) return null;
+
+    try {
+      final parts = code.split('|');
+      if (parts.length < 3) return null;
+
+      final palette = parts[1].split(',').map((h) {
+        final cleaned = h.trim().replaceAll('#', '');
+        if (cleaned.length != 6) return Colors.black;
+        return Color(int.parse('FF$cleaned', radix: 16));
+      }).toList();
+
+      if (palette.isEmpty) return null;
+
+      final indices = parts[2].replaceAll(RegExp(r'\s'), '');
+      final pixels = <List<Color>>[];
+      var i = 0;
+
+      for (var y = 0; y < 32; y++) {
+        final row = <Color>[];
+        for (var x = 0; x < 32; x++) {
+          if (i + 2 > indices.length) {
+            row.add(Colors.transparent);
+          } else {
+            final idx = int.parse(indices.substring(i, i + 2), radix: 16);
+            row.add(palette[idx.clamp(0, palette.length - 1)]);
+            i += 2;
+          }
+        }
+        pixels.add(row);
+      }
+      return pixels;
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+class _PixelPainter extends CustomPainter {
+  _PixelPainter(this.pixels);
+  final List<List<Color>> pixels;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pw = size.width / 32;
+    final ph = size.height / 32;
+
+    for (var y = 0; y < 32; y++) {
+      for (var x = 0; x < 32; x++) {
+        canvas.drawRect(
+          Rect.fromLTWH(x * pw, y * ph, pw + 0.5, ph + 0.5),
+          Paint()..color = pixels[y][x],
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PixelPainter old) => old.pixels != pixels;
 }
 
 Widget _field(
